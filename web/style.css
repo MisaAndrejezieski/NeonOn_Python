@@ -412,6 +412,26 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 /* ============================================
+   BOTÃO WHATSAPP
+   ============================================ */
+#btnWhatsApp {
+    font-size: 18px !important;
+    transition: all 0.3s ease;
+}
+
+#btnWhatsApp:hover {
+    color: #25D366 !important;
+    border-color: #25D366 !important;
+    text-shadow: 0 0 10px rgba(37, 211, 102, 0.5);
+    transform: scale(1.1);
+}
+
+#btnWhatsApp:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ============================================
    CRÉDITOS
    ============================================ */
 .credits-bar {
@@ -466,4 +486,5 @@ input[type="range"]::-webkit-slider-thumb:hover {
     .progress-container { padding: 4px 8px 0; }
     .progress-bar { height: 3px; }
     .progress-bar::-webkit-slider-thumb { width: 10px; height: 10px; }
+    #btnWhatsApp { font-size: 14px !important; }
 }
