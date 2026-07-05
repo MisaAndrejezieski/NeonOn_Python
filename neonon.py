@@ -4,6 +4,7 @@ Versão Python com PyWebView
 Desenvolvido por Misa 💜
 """
 
+import datetime
 import json
 import os
 import sys
@@ -13,20 +14,14 @@ from pathlib import Path
 import webview
 
 # ============================================
-# IMPORTAÇÕES PARA WHATSAPP (SELENIUM)
+# IMPORTAÇÃO PARA WHATSAPP (pywhatkit)
 # ============================================
 try:
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-    from selenium.webdriver.chrome.service import Service
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.support.ui import WebDriverWait
-    from webdriver_manager.chrome import ChromeDriverManager
-    SELENIUM_AVAILABLE = True
+    import pywhatkit as kit
+    WHATSAPP_AVAILABLE = True
 except ImportError:
-    SELENIUM_AVAILABLE = False
-    print('⚠️ Selenium não instalado. Execute: pip install selenium webdriver-manager')
+    WHATSAPP_AVAILABLE = False
+    print('⚠️ pywhatkit não instalado. Execute: pip install pywhatkit')
 
 # ============================================
 # CONFIGURAÇÕES
@@ -120,105 +115,51 @@ class NeonOnAPI:
             return {}
     
     # ============================================
-    # FUNÇÃO: ENVIAR PARA WHATSAPP (SELENIUM)
+    # FUNÇÃO: ENVIAR PARA WHATSAPP
     # ============================================
     def send_to_whatsapp(self, file_path, phone_number=None):
         """
-        Envia arquivo para o WhatsApp usando Selenium
-        FUNCIONA PARA VÍDEOS E IMAGENS!
-        100% automático após escanear o QR Code
+        Envia mensagem com o nome do arquivo para o WhatsApp
+        Usa pywhatkit (abre o WhatsApp Web automaticamente)
         """
         try:
-            if not SELENIUM_AVAILABLE:
-                return {'error': 'Selenium não instalado. Execute: pip install selenium webdriver-manager'}
+            if not WHATSAPP_AVAILABLE:
+                return {'error': 'pywhatkit não instalado. Execute: pip install pywhatkit'}
             
             if not os.path.exists(file_path):
-                return {'error': 'Arquivo não encontrado'}
+                return {'error': 'Arquivo não encontrado: ' + file_path}
             
             # Usa o número padrão se não for fornecido
             if not phone_number:
                 phone_number = SEU_NUMERO
             
-            print(f"📤 Enviando arquivo para +55{phone_number}...")
-            print(f"📁 Arquivo: {os.path.basename(file_path)}")
-            
-            # ============================================
-            # CONFIGURA O CHROME
-            # ============================================
-            options = Options()
-            options.add_argument('--user-data-dir=./whatsapp_session')  # Mantém login
-            options.add_argument('--disable-dev-shm-usage')
-            options.add_argument('--no-sandbox')
-            options.add_argument('--disable-blink-features=AutomationControlled')
-            options.add_experimental_option('excludeSwitches', ['enable-automation'])
-            options.add_experimental_option('useAutomationExtension', False)
-            
-            # ============================================
-            # INICIA O DRIVER
-            # ============================================
-            driver = webdriver.Chrome(
-                service=Service(ChromeDriverManager().install()),
-                options=options
-            )
-            
-            # ============================================
-            # ABRE O WHATSAPP WEB
-            # ============================================
-            driver.get("https://web.whatsapp.com")
-            
-            # Espera o login (60 segundos para escanear o QR Code)
-            wait = WebDriverWait(driver, 60)
-            wait.until(EC.presence_of_element_located((By.XPATH, '//div[@contenteditable="true"]')))
-            
-            # ============================================
-            # ABRE O CHAT COM O NÚMERO
-            # ============================================
-            phone = f"55{phone_number}"
-            chat_url = f"https://web.whatsapp.com/send?phone={phone}"
-            driver.get(chat_url)
-            time.sleep(3)
-            
-            # ============================================
-            # 1. CLICA NO BOTÃO DE ANEXAR
-            # ============================================
-            attach_btn = wait.until(EC.element_to_be_clickable((By.XPATH, '//div[@title="Anexar"]')))
-            attach_btn.click()
-            time.sleep(1)
-            
-            # ============================================
-            # 2. SELECIONA A OPÇÃO "DOCUMENTO"
-            # ============================================
-            file_input = driver.find_element(By.XPATH, '//input[@accept="*"]')
-            file_input.send_keys(os.path.abspath(file_path))
-            time.sleep(3)  # Espera o upload
-            
-            # ============================================
-            # 3. DIGITA A MENSAGEM
-            # ============================================
-            message_box = driver.find_element(By.XPATH, '//div[@contenteditable="true"][@spellcheck="true"]')
+            # Formata o número
+            phone = f"+55{phone_number}"
             file_name = os.path.basename(file_path)
+            
+            # Mensagem personalizada
             message = f"📹 NeonOn enviou:\n{file_name}\n\n💜 Desenvolvido por Misa"
-            message_box.send_keys(message)
             
-            # ============================================
-            # 4. CLICA EM ENVIAR
-            # ============================================
-            send_btn = driver.find_element(By.XPATH, '//span[@data-icon="send"]')
-            send_btn.click()
+            # Pega a hora atual + 2 minutos
+            now = datetime.datetime.now()
+            hour = now.hour
+            minute = now.minute + 2
             
-            # Aguarda o envio
-            time.sleep(5)
+            if minute >= 60:
+                minute -= 60
+                hour += 1
+            if hour >= 24:
+                hour = 0
             
-            # ============================================
-            # FECHA O NAVEGADOR
-            # ============================================
-            driver.quit()
+            print(f"📤 Enviando para {phone} às {hour:02d}:{minute:02d}")
+            print(f"📁 Arquivo: {file_name}")
             
-            print("✅ Arquivo enviado com sucesso!")
+            # Envia a mensagem
+            kit.sendwhatmsg(phone, message, hour, minute)
             
             return {
                 'success': True,
-                'message': f'✅ Arquivo enviado para +55{phone_number}',
+                'message': f'✅ Mensagem enviada para +55{phone_number}',
                 'file': file_name
             }
             
