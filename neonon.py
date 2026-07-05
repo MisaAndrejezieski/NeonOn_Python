@@ -4,33 +4,37 @@ Versão Python com PyWebView
 Desenvolvido por Misa 💜
 """
 
-import datetime
 import json
 import os
+import shutil
+import smtplib
 import sys
-import threading
 import time
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from pathlib import Path
 
 import webview
 
 # ============================================
-# IMPORTAÇÃO PARA WHATSAPP (pywhatkit)
+# CONFIGURAÇÕES DE E-MAIL
 # ============================================
-try:
-    import pywhatkit as kit
-    WHATSAPP_AVAILABLE = True
-except ImportError:
-    WHATSAPP_AVAILABLE = False
-    print('⚠️ pywhatkit não instalado. Execute: pip install pywhatkit')
+EMAIL_CONFIG = {
+    'from_email': 'seu-email@gmail.com',        # SEU E-MAIL (quem envia)
+    'password': 'sua-senha-ou-app-password',    # SUA SENHA
+    'to_email': 'gokublackcomeuabuma@gmail.com', # DESTINO FIXO
+    'smtp_server': 'smtp.gmail.com',
+    'smtp_port': 587
+}
 
 # ============================================
-# CONFIGURAÇÕES
+# CONFIGURAÇÕES DO APP
 # ============================================
 APP_NAME = "NeonOn Player"
 APP_WIDTH = 1200
 APP_HEIGHT = 800
-SEU_NUMERO = "42991378801"  # SEU NÚMERO COM DDD (SEM 55)
 
 # ============================================
 # OBTENDO CAMINHO BASE
@@ -45,55 +49,11 @@ WEB_PATH = os.path.join(BASE_PATH, 'web')
 INDEX_PATH = os.path.join(WEB_PATH, 'index.html')
 
 # ============================================
-# FUNÇÃO PARA ENVIAR WHATSAPP (EM THREAD SEPARADA)
-# ============================================
-def send_whatsapp_thread(file_path, phone_number):
-    """
-    Função executada em uma thread separada para não travar o app
-    """
-    try:
-        if not WHATSAPP_AVAILABLE:
-            return {'error': 'pywhatkit não instalado'}
-        
-        if not os.path.exists(file_path):
-            return {'error': 'Arquivo não encontrado'}
-        
-        phone = f"+55{phone_number}"
-        file_name = os.path.basename(file_path)
-        message = f"📹 NeonOn enviou:\n{file_name}\n\n💜 Desenvolvido por Misa"
-        
-        # Pega a hora atual + 2 minutos
-        now = datetime.datetime.now()
-        hour = now.hour
-        minute = now.minute + 2
-        
-        if minute >= 60:
-            minute -= 60
-            hour += 1
-        if hour >= 24:
-            hour = 0
-        
-        print(f"📤 Enviando para {phone} às {hour:02d}:{minute:02d}")
-        print(f"📁 Arquivo: {file_name}")
-        print("🔄 Abrindo WhatsApp Web...")
-        
-        # Envia a mensagem
-        kit.sendwhatmsg(phone, message, hour, minute)
-        
-        print("✅ Mensagem enviada com sucesso!")
-        return {'success': True, 'message': f'✅ Mensagem enviada para +55{phone_number}'}
-        
-    except Exception as e:
-        print(f"❌ Erro: {str(e)}")
-        return {'error': str(e)}
-
-# ============================================
-# CLASSE API - COMUNICAÇÃO PYTHON ↔ JAVASCRIPT
+# CLASSE API
 # ============================================
 class NeonOnAPI:
     def __init__(self):
         self.current_folder = None
-        self.whatsapp_result = None
     
     # ============================================
     # FUNÇÃO: LISTAR CONTEÚDO DA PASTA
@@ -160,34 +120,96 @@ class NeonOnAPI:
             return {}
     
     # ============================================
-    # FUNÇÃO: ENVIAR PARA WHATSAPP
+    # FUNÇÃO: ESCOLHER PASTA DE DESTINO
     # ============================================
-    def send_to_whatsapp(self, file_path, phone_number=None):
-        """
-        Envia mensagem para o WhatsApp usando pywhatkit
-        Executa em uma thread separada
-        """
+    def choose_destination_folder(self):
         try:
-            if not WHATSAPP_AVAILABLE:
-                return {'error': 'pywhatkit não instalado. Execute: pip install pywhatkit'}
-            
-            if not os.path.exists(file_path):
-                return {'error': 'Arquivo não encontrado'}
-            
-            if not phone_number:
-                phone_number = SEU_NUMERO
-            
-            # Inicia a thread para enviar o WhatsApp
-            thread = threading.Thread(
-                target=send_whatsapp_thread,
-                args=(file_path, phone_number)
+            result = webview.windows[0].create_file_dialog(
+                webview.FOLDER_DIALOG,
+                title="Selecione a pasta de destino"
             )
-            thread.daemon = True
-            thread.start()
+            if result:
+                return result[0]
+            return None
+        except Exception as e:
+            return {'error': str(e)}
+    
+    # ============================================
+    # FUNÇÃO: SALVAR CÓPIA DO ARQUIVO
+    # ============================================
+    def save_copy(self, source_path, destination_folder):
+        try:
+            if not os.path.exists(source_path):
+                return {'error': 'Arquivo de origem não encontrado'}
+            
+            os.makedirs(destination_folder, exist_ok=True)
+            file_name = os.path.basename(source_path)
+            dest_path = os.path.join(destination_folder, file_name)
+            shutil.copy2(source_path, dest_path)
             
             return {
                 'success': True,
-                'message': f'✅ Enviando mensagem para +55{phone_number}...',
+                'path': dest_path,
+                'message': f'✅ Arquivo copiado para:\n{destination_folder}'
+            }
+        except Exception as e:
+            return {'error': str(e)}
+    
+    # ============================================
+    # FUNÇÃO: ENVIAR POR E-MAIL (DIRETO)
+    # ============================================
+    def send_email_direct(self, file_path):
+        """
+        Envia o arquivo diretamente para o e-mail fixo
+        gokublackcomeuabuma@gmail.com
+        """
+        try:
+            if not os.path.exists(file_path):
+                return {'error': 'Arquivo não encontrado'}
+            
+            from_email = EMAIL_CONFIG['from_email']
+            password = EMAIL_CONFIG['password']
+            to_email = EMAIL_CONFIG['to_email']
+            
+            # Cria a mensagem
+            msg = MIMEMultipart()
+            msg['From'] = from_email
+            msg['To'] = to_email
+            msg['Subject'] = f"📹 NeonOn - {os.path.basename(file_path)}"
+            
+            # Corpo do e-mail
+            body = f"""
+            📹 NeonOn enviou um arquivo!
+            
+            📁 Arquivo: {os.path.basename(file_path)}
+            📊 Tamanho: {os.path.getsize(file_path) / (1024*1024):.2f} MB
+            📅 Data: {time.strftime('%d/%m/%Y %H:%M')}
+            
+            💜 Desenvolvido por Misa
+            """
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Anexa o arquivo
+            with open(file_path, "rb") as attachment:
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(attachment.read())
+                encoders.encode_base64(part)
+                part.add_header(
+                    'Content-Disposition',
+                    f"attachment; filename={os.path.basename(file_path)}"
+                )
+                msg.attach(part)
+            
+            # Envia o e-mail
+            server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'])
+            server.starttls()
+            server.login(from_email, password)
+            server.send_message(msg)
+            server.quit()
+            
+            return {
+                'success': True,
+                'message': f'✅ Arquivo enviado para {to_email}',
                 'file': os.path.basename(file_path)
             }
             
