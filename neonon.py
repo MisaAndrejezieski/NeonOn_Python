@@ -6,28 +6,10 @@ Desenvolvido por Misa 💜
 
 import json
 import os
-import shutil
-import smtplib
 import sys
-import time
-from email import encoders
-from email.mime.base import MIMEBase
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from pathlib import Path
 
 import webview
-
-# ============================================
-# CONFIGURAÇÕES DE E-MAIL (ATUALIZADO)
-# ============================================
-EMAIL_CONFIG = {
-    'from_email': 'gokublackcomeuabuma@gmail.com',  # E-MAIL QUE ENVIA
-    'password': 'sonho1313',                        # SENHA
-    'to_email': 'gokublackcomeuabuma@gmail.com',    # DESTINO (MESMO E-MAIL)
-    'smtp_server': 'smtp.gmail.com',
-    'smtp_port': 587
-}
 
 # ============================================
 # CONFIGURAÇÕES DO APP
@@ -118,103 +100,6 @@ class NeonOnAPI:
             return {}
         except Exception:
             return {}
-    
-    # ============================================
-    # FUNÇÃO: ESCOLHER PASTA DE DESTINO
-    # ============================================
-    def choose_destination_folder(self):
-        try:
-            result = webview.windows[0].create_file_dialog(
-                webview.FOLDER_DIALOG,
-                title="Selecione a pasta de destino"
-            )
-            if result:
-                return result[0]
-            return None
-        except Exception as e:
-            return {'error': str(e)}
-    
-    # ============================================
-    # FUNÇÃO: SALVAR CÓPIA DO ARQUIVO
-    # ============================================
-    def save_copy(self, source_path, destination_folder):
-        try:
-            if not os.path.exists(source_path):
-                return {'error': 'Arquivo de origem não encontrado'}
-            
-            os.makedirs(destination_folder, exist_ok=True)
-            file_name = os.path.basename(source_path)
-            dest_path = os.path.join(destination_folder, file_name)
-            shutil.copy2(source_path, dest_path)
-            
-            return {
-                'success': True,
-                'path': dest_path,
-                'message': f'✅ Arquivo copiado para:\n{destination_folder}'
-            }
-        except Exception as e:
-            return {'error': str(e)}
-    
-    # ============================================
-    # FUNÇÃO: ENVIAR POR E-MAIL (DIRETO)
-    # ============================================
-    def send_email_direct(self, file_path):
-        """
-        Envia o arquivo diretamente para o e-mail fixo
-        gokublackcomeuabuma@gmail.com
-        """
-        try:
-            if not os.path.exists(file_path):
-                return {'error': 'Arquivo não encontrado'}
-            
-            from_email = EMAIL_CONFIG['from_email']
-            password = EMAIL_CONFIG['password']
-            to_email = EMAIL_CONFIG['to_email']
-            
-            # Cria a mensagem
-            msg = MIMEMultipart()
-            msg['From'] = from_email
-            msg['To'] = to_email
-            msg['Subject'] = f"📹 NeonOn - {os.path.basename(file_path)}"
-            
-            # Corpo do e-mail
-            body = f"""
-            📹 NeonOn enviou um arquivo!
-            
-            📁 Arquivo: {os.path.basename(file_path)}
-            📊 Tamanho: {os.path.getsize(file_path) / (1024*1024):.2f} MB
-            📅 Data: {time.strftime('%d/%m/%Y %H:%M')}
-            
-            💜 Desenvolvido por Misa
-            """
-            msg.attach(MIMEText(body, 'plain'))
-            
-            # Anexa o arquivo
-            with open(file_path, "rb") as attachment:
-                part = MIMEBase('application', 'octet-stream')
-                part.set_payload(attachment.read())
-                encoders.encode_base64(part)
-                part.add_header(
-                    'Content-Disposition',
-                    f"attachment; filename={os.path.basename(file_path)}"
-                )
-                msg.attach(part)
-            
-            # Envia o e-mail
-            server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'])
-            server.starttls()
-            server.login(from_email, password)
-            server.send_message(msg)
-            server.quit()
-            
-            return {
-                'success': True,
-                'message': f'✅ Arquivo enviado para {to_email}',
-                'file': os.path.basename(file_path)
-            }
-            
-        except Exception as e:
-            return {'error': str(e)}
 
 # ============================================
 # CRIAÇÃO DA JANELA
