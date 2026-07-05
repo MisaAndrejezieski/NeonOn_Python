@@ -8,6 +8,7 @@ import datetime
 import json
 import os
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -44,11 +45,55 @@ WEB_PATH = os.path.join(BASE_PATH, 'web')
 INDEX_PATH = os.path.join(WEB_PATH, 'index.html')
 
 # ============================================
+# FUNÇÃO PARA ENVIAR WHATSAPP (EM THREAD SEPARADA)
+# ============================================
+def send_whatsapp_thread(file_path, phone_number):
+    """
+    Função executada em uma thread separada para não travar o app
+    """
+    try:
+        if not WHATSAPP_AVAILABLE:
+            return {'error': 'pywhatkit não instalado'}
+        
+        if not os.path.exists(file_path):
+            return {'error': 'Arquivo não encontrado'}
+        
+        phone = f"+55{phone_number}"
+        file_name = os.path.basename(file_path)
+        message = f"📹 NeonOn enviou:\n{file_name}\n\n💜 Desenvolvido por Misa"
+        
+        # Pega a hora atual + 2 minutos
+        now = datetime.datetime.now()
+        hour = now.hour
+        minute = now.minute + 2
+        
+        if minute >= 60:
+            minute -= 60
+            hour += 1
+        if hour >= 24:
+            hour = 0
+        
+        print(f"📤 Enviando para {phone} às {hour:02d}:{minute:02d}")
+        print(f"📁 Arquivo: {file_name}")
+        print("🔄 Abrindo WhatsApp Web...")
+        
+        # Envia a mensagem
+        kit.sendwhatmsg(phone, message, hour, minute)
+        
+        print("✅ Mensagem enviada com sucesso!")
+        return {'success': True, 'message': f'✅ Mensagem enviada para +55{phone_number}'}
+        
+    except Exception as e:
+        print(f"❌ Erro: {str(e)}")
+        return {'error': str(e)}
+
+# ============================================
 # CLASSE API - COMUNICAÇÃO PYTHON ↔ JAVASCRIPT
 # ============================================
 class NeonOnAPI:
     def __init__(self):
         self.current_folder = None
+        self.whatsapp_result = None
     
     # ============================================
     # FUNÇÃO: LISTAR CONTEÚDO DA PASTA
@@ -119,52 +164,34 @@ class NeonOnAPI:
     # ============================================
     def send_to_whatsapp(self, file_path, phone_number=None):
         """
-        Envia mensagem com o nome do arquivo para o WhatsApp
-        Usa pywhatkit (abre o WhatsApp Web automaticamente)
+        Envia mensagem para o WhatsApp usando pywhatkit
+        Executa em uma thread separada
         """
         try:
             if not WHATSAPP_AVAILABLE:
                 return {'error': 'pywhatkit não instalado. Execute: pip install pywhatkit'}
             
             if not os.path.exists(file_path):
-                return {'error': 'Arquivo não encontrado: ' + file_path}
+                return {'error': 'Arquivo não encontrado'}
             
-            # Usa o número padrão se não for fornecido
             if not phone_number:
                 phone_number = SEU_NUMERO
             
-            # Formata o número
-            phone = f"+55{phone_number}"
-            file_name = os.path.basename(file_path)
-            
-            # Mensagem personalizada
-            message = f"📹 NeonOn enviou:\n{file_name}\n\n💜 Desenvolvido por Misa"
-            
-            # Pega a hora atual + 2 minutos
-            now = datetime.datetime.now()
-            hour = now.hour
-            minute = now.minute + 2
-            
-            if minute >= 60:
-                minute -= 60
-                hour += 1
-            if hour >= 24:
-                hour = 0
-            
-            print(f"📤 Enviando para {phone} às {hour:02d}:{minute:02d}")
-            print(f"📁 Arquivo: {file_name}")
-            
-            # Envia a mensagem
-            kit.sendwhatmsg(phone, message, hour, minute)
+            # Inicia a thread para enviar o WhatsApp
+            thread = threading.Thread(
+                target=send_whatsapp_thread,
+                args=(file_path, phone_number)
+            )
+            thread.daemon = True
+            thread.start()
             
             return {
                 'success': True,
-                'message': f'✅ Mensagem enviada para +55{phone_number}',
-                'file': file_name
+                'message': f'✅ Enviando mensagem para +55{phone_number}...',
+                'file': os.path.basename(file_path)
             }
             
         except Exception as e:
-            print(f"❌ Erro: {str(e)}")
             return {'error': str(e)}
 
 # ============================================
