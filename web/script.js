@@ -21,8 +21,6 @@ const btnPlay = document.getElementById('btnPlay');
 const btnNext = document.getElementById('btnNext');
 const btnFullscreen = document.getElementById('btnFullscreen');
 const btnReset = document.getElementById('btnReset');
-const btnSaveCopy = document.getElementById('btnSaveCopy');
-const btnSendEmail = document.getElementById('btnSendEmail');
 const volumeSlider = document.getElementById('volumeSlider');
 
 // --- ELEMENTOS PARA CORES INDEPENDENTES ---
@@ -75,35 +73,41 @@ function getGlow(r, g, b) {
 
 // --- APLICA CORES INDEPENDENTES PARA CADA ELEMENTO ---
 function applyAllColors() {
+    // 1. Logo "Neon"
     const neonColor = paletaNeon[colorIndex.logoNeon % paletaNeon.length];
     if (logoNeon) {
         logoNeon.style.color = rgbToString(neonColor.r, neonColor.g, neonColor.b);
         logoNeon.style.textShadow = getGlow(neonColor.r, neonColor.g, neonColor.b);
     }
     
+    // 2. Logo "On"
     const onColor = paletaNeon[colorIndex.logoOn % paletaNeon.length];
     if (logoOn) {
         logoOn.style.color = rgbToString(onColor.r, onColor.g, onColor.b);
         logoOn.style.textShadow = getGlow(onColor.r, onColor.g, onColor.b);
     }
     
+    // 3. Ícone Drop
     const dropColor = paletaNeon[colorIndex.dropIcon % paletaNeon.length];
     if (dropIcon) {
         dropIcon.style.color = rgbToString(dropColor.r, dropColor.g, dropColor.b);
         dropIcon.style.textShadow = getGlow(dropColor.r, dropColor.g, dropColor.b);
     }
     
+    // 4. Ícone Volume
     const volumeColor = paletaNeon[colorIndex.volumeIcon % paletaNeon.length];
     if (volumeIcon) {
         volumeIcon.style.color = rgbToString(volumeColor.r, volumeColor.g, volumeColor.b);
     }
     
+    // 5. Display Tempo
     const timeColor = paletaNeon[colorIndex.timeDisplay % paletaNeon.length];
     if (timeDisplay) {
         timeDisplay.style.color = rgbToString(timeColor.r, timeColor.g, timeColor.b);
         timeDisplay.style.textShadow = getGlow(timeColor.r, timeColor.g, timeColor.b);
     }
     
+    // 6. Botão Autoplay
     const autoplayColor = paletaNeon[colorIndex.autoplayBtn % paletaNeon.length];
     if (autoplayBtn) {
         autoplayBtn.style.color = rgbToString(autoplayColor.r, autoplayColor.g, autoplayColor.b);
@@ -111,6 +115,7 @@ function applyAllColors() {
         autoplayBtn.style.borderColor = rgbToString(autoplayColor.r, autoplayColor.g, autoplayColor.b);
     }
     
+    // 7. Botões Navegação
     const navColor = paletaNeon[colorIndex.navBtns % paletaNeon.length];
     if (prevBtn) {
         prevBtn.style.color = rgbToString(navColor.r, navColor.g, navColor.b);
@@ -125,12 +130,14 @@ function applyAllColors() {
         fullscreenBtn.style.borderColor = rgbToString(navColor.r, navColor.g, navColor.b);
     }
     
+    // 8. Botões Neon
     const btnColor = paletaNeon[colorIndex.neonBtns % paletaNeon.length];
     allNeonBtns.forEach(btn => {
         btn.style.color = rgbToString(btnColor.r, btnColor.g, btnColor.b);
         btn.style.borderColor = rgbToString(btnColor.r, btnColor.g, btnColor.b);
     });
     
+    // 9. Botão Play
     const playColor = paletaNeon[colorIndex.playBtn % paletaNeon.length];
     if (btnPlay) {
         btnPlay.style.color = rgbToString(playColor.r, playColor.g, playColor.b);
@@ -138,6 +145,7 @@ function applyAllColors() {
         btnPlay.style.textShadow = getGlow(playColor.r, playColor.g, playColor.b);
     }
     
+    // 10. Slider do Volume
     const sliderColor = paletaNeon[(colorIndex.volumeIcon + 2) % paletaNeon.length];
     let style = document.getElementById('dynamic-thumb-style');
     if (style) style.remove();
@@ -150,6 +158,7 @@ function applyAllColors() {
     }`;
     document.head.appendChild(style);
     
+    // 11. Itens ativos
     const activeColor = paletaNeon[colorIndex.activeItem % paletaNeon.length];
     const activeListItems = document.querySelectorAll('.video-list li.active');
     activeListItems.forEach(item => {
@@ -159,7 +168,7 @@ function applyAllColors() {
     });
 }
 
-// --- AVANÇA TODAS AS CORES SIMULTANEAMENTE ---
+// --- AVANÇA TODAS AS CORES ---
 function advanceAllColors() {
     colorIndex.logoNeon++;
     colorIndex.logoOn++;
@@ -179,7 +188,7 @@ function startAutoColor() {
     colorInterval = setInterval(advanceAllColors, 2000);
 }
 
-// --- ESTADO DA APLICAÇÃO ---
+// --- ESTADO ---
 let mediaFiles = [];
 let currentIndex = -1;
 let autoplay = true;
@@ -188,7 +197,7 @@ let currentFolder = null;
 const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.wmv', '.flv', '.m4v'];
 const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.ico'];
 
-// --- CONFIGURAÇÃO PERSISTENTE ---
+// --- CONFIG ---
 const CONFIG_KEY = 'neonon_config';
 
 function loadConfig() {
@@ -208,7 +217,7 @@ function saveConfig() {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
 }
 
-// --- SELEÇÃO DE PASTA ---
+// --- SELECIONAR PASTA ---
 btnSelectFolder.addEventListener('click', selectFolder);
 
 async function selectFolder() {
@@ -458,86 +467,7 @@ const isPython = typeof pywebview !== 'undefined';
 if (isPython) {
     console.log('🐍 Modo Python ativado!');
     
-    // --- BOTÃO SALVAR CÓPIA ---
-    if (btnSaveCopy) {
-        btnSaveCopy.addEventListener('click', async function() {
-            if (mediaFiles.length === 0 || currentIndex < 0) {
-                alert('❌ Nenhum arquivo carregado.');
-                return;
-            }
-            
-            const file = mediaFiles[currentIndex];
-            const fileName = file.name;
-            const filePath = file.path;
-            
-            try {
-                const folderPath = await pywebview.api.choose_destination_folder();
-                if (folderPath && !folderPath.error) {
-                    const confirmCopy = confirm(`📁 Copiar "${fileName}" para:\n${folderPath}?`);
-                    if (!confirmCopy) return;
-                    
-                    btnSaveCopy.disabled = true;
-                    btnSaveCopy.textContent = '⏳';
-                    
-                    const result = await pywebview.api.save_copy(filePath, folderPath);
-                    if (result && result.success) {
-                        alert(`✅ ${result.message}`);
-                    } else {
-                        alert(`❌ ${result.error || 'Erro desconhecido'}`);
-                    }
-                }
-            } catch (e) {
-                console.error('Erro:', e);
-                alert('❌ Erro ao copiar o arquivo.');
-            } finally {
-                btnSaveCopy.disabled = false;
-                btnSaveCopy.textContent = '💾';
-            }
-        });
-    }
-    
-    // --- BOTÃO ENVIAR E-MAIL ---
-    if (btnSendEmail) {
-        btnSendEmail.addEventListener('click', async function() {
-            if (mediaFiles.length === 0 || currentIndex < 0) {
-                alert('❌ Nenhum arquivo carregado.');
-                return;
-            }
-            
-            const file = mediaFiles[currentIndex];
-            const fileName = file.name;
-            const filePath = file.path;
-            
-            const confirmSend = confirm(
-                `📧 Enviar "${fileName}" para o e-mail?\n\n` +
-                `📩 Destino: gokublackcomeuabuma@gmail.com\n\n` +
-                `✅ O envio é automático!`
-            );
-            
-            if (!confirmSend) return;
-            
-            try {
-                btnSendEmail.disabled = true;
-                btnSendEmail.textContent = '⏳';
-                
-                const result = await pywebview.api.send_email_direct(filePath);
-                
-                if (result && result.success) {
-                    alert(`✅ ${result.message}`);
-                } else {
-                    alert(`❌ ${result.error || 'Erro desconhecido'}`);
-                }
-            } catch (e) {
-                console.error('Erro:', e);
-                alert('❌ Erro ao enviar e-mail.');
-            } finally {
-                btnSendEmail.disabled = false;
-                btnSendEmail.textContent = '✉️';
-            }
-        });
-    }
-    
-    // --- SUBSTITUI A FUNÇÃO SELECT FOLDER ---
+    // Substitui a função selectFolder
     window.selectFolder = async function() {
         try {
             const folderPath = await pywebview.api.open_folder_dialog();
@@ -567,7 +497,7 @@ if (isPython) {
         await window.selectFolder();
     };
     
-    // --- CARREGAR PREFERÊNCIAS ---
+    // Carregar preferências
     async function loadPythonPreferences() {
         try {
             const prefs = await pywebview.api.load_preferences();
@@ -586,7 +516,7 @@ if (isPython) {
     
     loadPythonPreferences();
     
-    // --- SALVAR PREFERÊNCIAS ---
+    // Salvar preferências
     volumeSlider.addEventListener('input', function() {
         videoPlayer.volume = this.value / 100;
         pywebview.api.save_preferences({
@@ -616,5 +546,4 @@ startAutoColor();
 
 console.log('%c✨ NeonOn - Desenvolvido por Misa ✨', 'color: #ff66cc; font-size: 14px;');
 console.log('%c🌈 CADA ELEMENTO tem sua PRÓPRIA COR neon!', 'color: #ffcc00; font-size: 12px;');
-console.log('%c💾 Botão Salvar Cópia: copia o arquivo para qualquer pasta', 'color: #ffcc00; font-size: 12px;');
-console.log('%c📧 Botão Enviar E-mail: envia para gokublackcomeuabuma@gmail.com', 'color: #ff66cc; font-size: 12px;');
+console.log('%c🎯 Player de mídia profissional com cores dinâmicas!', 'color: #00ff88; font-size: 12px;');
