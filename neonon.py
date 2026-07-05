@@ -4,12 +4,11 @@ Versão Python com PyWebView
 Desenvolvido por Misa 💜
 """
 
-import json
+import webview
 import os
+import json
 import sys
 from pathlib import Path
-
-import webview
 
 # --- CONFIGURAÇÕES ---
 APP_NAME = "NeonOn Player"
@@ -107,8 +106,7 @@ def main():
     webview.start(
         private_mode=False,
         debug=True,
-        http_server=True,
-        gui='cef'
+        http_server=True
     )
 
 if __name__ == '__main__':
