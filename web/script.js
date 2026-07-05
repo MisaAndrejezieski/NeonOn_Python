@@ -306,7 +306,7 @@ async function playMedia(index) {
         dropOverlay.style.display = 'none';
         updateMediaList();
         highlightCurrentInList();
-        applyAllColors(); // Reaplica cores após mudar lista
+        applyAllColors();
     } catch (err) { alert('Erro ao carregar o arquivo'); }
 }
 
@@ -378,9 +378,22 @@ volumeSlider.addEventListener('input', () => {
     saveConfig();
 });
 
+// --- BARRA DE PROGRESSO ---
+const progressBar = document.getElementById('progressBar');
+
 videoPlayer.addEventListener('timeupdate', () => {
+    if (videoPlayer.duration && !isNaN(videoPlayer.duration)) {
+        const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+        progressBar.value = percent;
+    }
     if (imageViewer.style.display === 'block') return;
     timeDisplay.textContent = `${formatTime(videoPlayer.currentTime)} / ${formatTime(videoPlayer.duration)}`;
+});
+
+progressBar.addEventListener('input', () => {
+    if (videoPlayer.duration) {
+        videoPlayer.currentTime = (progressBar.value / 100) * videoPlayer.duration;
+    }
 });
 
 function formatTime(seconds) {
@@ -396,41 +409,29 @@ btnFullscreen.addEventListener('click', () => {
 btnReset.addEventListener('click', resetPlayer);
 
 function resetPlayer() {
-    // Confirmação antes de resetar
     if (mediaFiles.length === 0) return;
     
     if (confirm('Deseja limpar a lista e recomeçar?')) {
-        // Limpa arquivos
         mediaFiles = [];
         currentIndex = -1;
         
-        // Para o vídeo
         videoPlayer.pause();
         videoPlayer.src = '';
         videoPlayer.style.display = 'none';
         
-        // Limpa imagem
         imageViewer.src = '';
         imageViewer.style.display = 'none';
         
-        // Reseta display
         timeDisplay.textContent = '00:00 / 00:00';
         btnPlay.innerHTML = '▶';
         
-        // Mostra overlay novamente
         dropOverlay.style.display = 'flex';
         videoContainer.classList.remove('has-video');
         
-        // Atualiza lista
         updateMediaList();
-        
-        // Limpa pasta atual
         currentFolder = null;
-        
-        // Remove pasta salva (se tiver)
         localStorage.removeItem('neonon_last_folder');
         
-        // Remove botão de volume colorido (se tiver)
         const style = document.getElementById('dynamic-thumb-style');
         if (style) style.remove();
     }
@@ -479,13 +480,14 @@ updatePlayButton();
 // Aplica cores iniciais
 applyAllColors();
 
-// INICIA O LOOP DE CORES (cada elemento com sua própria cor!)
+// INICIA O LOOP DE CORES
 startAutoColor();
 
 console.log('%c✨ NeonOn - Desenvolvido por Misa ✨', 'color: #ff66cc; font-size: 14px;');
 console.log('%c🌈 CADA ELEMENTO tem sua PRÓPRIA COR neon!', 'color: #ffcc00; font-size: 12px;');
 console.log('%c🎨 Neon, On, Play, Volume, Tempo... tudo com cores diferentes mudando juntas!', 'color: #00ff88; font-size: 11px;');
 console.log('%c🔄 Botão RESET adicionado! Clique em ⟲ para limpar e recomeçar.', 'color: #ff3366; font-size: 11px;');
+console.log('%c📊 Barra de Progresso adicionada!', 'color: #0088ff; font-size: 11px;');
 
 // ============================================
 // INTEGRAÇÃO COM PYTHON (PyWebView)
@@ -494,72 +496,82 @@ console.log('%c🔄 Botão RESET adicionado! Clique em ⟲ para limpar e recome�
 const isPython = typeof pywebview !== 'undefined';
 
 if (isPython) {
-    console.log('🐍 NeonOn rodando no Python!');
+    console.log('🐍 Modo Python ativado!');
     
-    // Substitui a função selectFolder para usar Python
-    const originalSelectFolder = selectFolder;
-    selectFolder = async function() {
+    // Substitui a função selectFolder original
+    window.selectFolder = async function() {
         try {
             const folderPath = await pywebview.api.open_folder_dialog();
+            console.log('Pasta selecionada:', folderPath);
+            
             if (folderPath && !folderPath.error) {
                 const files = await pywebview.api.get_folder_contents(folderPath);
+                console.log('Arquivos encontrados:', files);
+                
                 if (files && !files.error) {
-                    window.updateMediaListFromPython(files);
+                    mediaFiles = files.map(f => ({
+                        name: f.name,
+                        path: f.path,
+                        type: f.type,
+                        size: f.size
+                    }));
+                    
+                    currentIndex = -1;
+                    updateMediaList();
+                    
+                    if (mediaFiles.length > 0) {
+                        playMedia(0);
+                    }
                     return true;
                 }
             }
             return false;
         } catch (e) {
             console.error('Erro ao selecionar pasta:', e);
+            alert('Erro ao selecionar pasta. Veja o console para mais detalhes.');
             return false;
         }
     };
     
-    // Função para atualizar a lista vinda do Python
-    window.updateMediaListFromPython = function(files) {
-        mediaFiles = files.map(f => ({
-            name: f.name,
-            path: f.path,
-            type: f.type,
-            size: f.size
-        }));
-        currentIndex = -1;
-        updateMediaList();
-        if (mediaFiles.length > 0) {
-            playMedia(0);
-        }
+    // Substitui o evento do botão "Selecionar Pasta"
+    btnSelectFolder.onclick = async function() {
+        await window.selectFolder();
     };
     
     // Carregar preferências salvas
-    pywebview.api.load_preferences().then(prefs => {
-        if (prefs && !prefs.error) {
-            if (prefs.autoplay !== undefined) {
-                autoplay = prefs.autoplay;
-                updateAutoplayButton();
+    async function loadPythonPreferences() {
+        try {
+            const prefs = await pywebview.api.load_preferences();
+            console.log('Preferências carregadas:', prefs);
+            
+            if (prefs && !prefs.error) {
+                if (prefs.autoplay !== undefined) {
+                    autoplay = prefs.autoplay;
+                    updateAutoplayButton();
+                }
+                if (prefs.volume !== undefined) {
+                    volumeSlider.value = prefs.volume;
+                    videoPlayer.volume = prefs.volume / 100;
+                }
             }
-            if (prefs.volume !== undefined) {
-                volumeSlider.value = prefs.volume;
-                videoPlayer.volume = prefs.volume / 100;
-            }
+        } catch (e) {
+            console.error('Erro ao carregar preferências:', e);
         }
-    });
+    }
+    
+    loadPythonPreferences();
     
     // Salvar preferências quando mudar
-    volumeSlider.addEventListener('input', () => {
-        videoPlayer.volume = volumeSlider.value / 100;
+    volumeSlider.addEventListener('input', function() {
+        videoPlayer.volume = this.value / 100;
         pywebview.api.save_preferences({
-            volume: parseInt(volumeSlider.value),
+            volume: parseInt(this.value),
             autoplay: autoplay
         });
     });
     
     // Salvar preferências quando autoplay mudar
-    const originalAutoplayClick = btnToggleAutoplay._listeners ? 
-        btnToggleAutoplay._listeners : null;
-    
-    btnToggleAutoplay.addEventListener('click', () => {
-        // O código original já altera o autoplay
-        // Só precisamos salvar depois
+    btnToggleAutoplay.addEventListener('click', function() {
         setTimeout(() => {
             pywebview.api.save_preferences({
                 volume: parseInt(volumeSlider.value),
@@ -567,16 +579,6 @@ if (isPython) {
             });
         }, 100);
     });
-    
-    // Sobrescrever saveConfig para usar Python também
-    const originalSaveConfig = saveConfig;
-    saveConfig = function() {
-        originalSaveConfig();
-        pywebview.api.save_preferences({
-            volume: parseInt(volumeSlider.value),
-            autoplay: autoplay
-        });
-    };
     
     console.log('✅ Integração Python completa!');
 }
