@@ -183,14 +183,6 @@ function advanceAllColors() {
     colorIndex.activeItem++;
     
     applyAllColors();
-    
-    // Log no console (opcional)
-    const currentColors = {
-        Neon: paletaNeon[colorIndex.logoNeon % paletaNeon.length].name,
-        On: paletaNeon[colorIndex.logoOn % paletaNeon.length].name,
-        Play: paletaNeon[colorIndex.playBtn % paletaNeon.length].name
-    };
-    console.log(`🎨 Neon:${currentColors.Neon} | On:${currentColors.On} | Play:${currentColors.Play}`);
 }
 
 // --- INICIA O LOOP DE CORES ---
@@ -438,7 +430,6 @@ function resetPlayer() {
         const style = document.getElementById('dynamic-thumb-style');
         if (style) style.remove();
         
-        // Reseta a barra de progresso
         if (progressBar) progressBar.value = 0;
     }
 }
@@ -486,6 +477,7 @@ const isPython = typeof pywebview !== 'undefined';
 
 if (isPython) {
     console.log('🐍 Modo Python ativado!');
+    console.log('📱 WhatsApp configurado para: +55 42 991378801');
     
     // --- BOTÃO ENVIAR PARA WHATSAPP ---
     if (btnWhatsApp) {
@@ -601,7 +593,6 @@ if (isPython) {
     });
     
     console.log('✅ Integração Python completa!');
-    console.log('📱 Botão WhatsApp configurado para enviar para o seu celular!');
 }
 
 // --- INICIALIZAÇÃO ---
@@ -613,4 +604,4 @@ startAutoColor();
 
 console.log('%c✨ NeonOn - Desenvolvido por Misa ✨', 'color: #ff66cc; font-size: 14px;');
 console.log('%c🌈 CADA ELEMENTO tem sua PRÓPRIA COR neon!', 'color: #ffcc00; font-size: 12px;');
-console.log('%c📱 Botão WhatsApp: envia o arquivo direto para o seu celular!', 'color: #25D366; font-size: 12px;');
+console.log('%c📱 Botão WhatsApp: envia mensagem para +55 42 99137-8801', 'color: #25D366; font-size: 12px;');
