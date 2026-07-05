@@ -412,46 +412,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 /* ============================================
-   BOTÃO SALVAR CÓPIA
-   ============================================ */
-#btnSaveCopy {
-    font-size: 18px !important;
-    transition: all 0.3s ease;
-}
-
-#btnSaveCopy:hover {
-    color: #ffcc00 !important;
-    border-color: #ffcc00 !important;
-    text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
-    transform: scale(1.1);
-}
-
-#btnSaveCopy:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* ============================================
-   BOTÃO ENVIAR E-MAIL
-   ============================================ */
-#btnSendEmail {
-    font-size: 18px !important;
-    transition: all 0.3s ease;
-}
-
-#btnSendEmail:hover {
-    color: #ff66cc !important;
-    border-color: #ff66cc !important;
-    text-shadow: 0 0 10px rgba(255, 102, 204, 0.5);
-    transform: scale(1.1);
-}
-
-#btnSendEmail:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* ============================================
    CRÉDITOS
    ============================================ */
 .credits-bar {
@@ -506,6 +466,4 @@ input[type="range"]::-webkit-slider-thumb:hover {
     .progress-container { padding: 4px 8px 0; }
     .progress-bar { height: 3px; }
     .progress-bar::-webkit-slider-thumb { width: 10px; height: 10px; }
-    #btnSaveCopy { font-size: 14px !important; }
-    #btnSendEmail { font-size: 14px !important; }
 }
