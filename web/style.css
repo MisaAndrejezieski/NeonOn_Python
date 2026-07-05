@@ -377,14 +377,16 @@ body {
     transition: color 0.3s ease;
 }
 
-input[type="range"] {
-    ::webkit-appearance: none;
-    width: 80px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
-    outline: none;
+.progress-bar::-webkit-slider-thumb {
+    appearance: none;           /* ← Primeiro a padrão */
+    -webkit-appearance: none;   /* ← Depois a com prefixo */
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #00ff88;
     cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+    transition: all 0.2s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb {
