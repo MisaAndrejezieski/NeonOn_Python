@@ -21,6 +21,7 @@ const btnPlay = document.getElementById('btnPlay');
 const btnNext = document.getElementById('btnNext');
 const btnFullscreen = document.getElementById('btnFullscreen');
 const btnReset = document.getElementById('btnReset');
+const btnWhatsApp = document.getElementById('btnWhatsApp');
 const volumeSlider = document.getElementById('volumeSlider');
 
 // --- ELEMENTOS PARA CORES INDEPENDENTES ---
@@ -36,14 +37,14 @@ const fullscreenBtn = document.getElementById('btnFullscreen');
 
 // --- PALETA DE CORES NEON (RGB) ---
 const paletaNeon = [
-    { r: 0, g: 255, b: 136, name: 'Verde' },      // #00ff88
-    { r: 255, g: 204, b: 0, name: 'Amarelo' },     // #ffcc00
-    { r: 255, g: 51, b: 102, name: 'Vermelho' },   // #ff3366
-    { r: 0, g: 136, b: 255, name: 'Azul' },        // #0088ff
-    { r: 255, g: 102, b: 204, name: 'Rosa' },      // #ff66cc
-    { r: 170, g: 68, b: 255, name: 'Roxo' },       // #aa44ff
-    { r: 0, g: 255, b: 255, name: 'Ciano' },       // #00ffff
-    { r: 255, g: 128, b: 0, name: 'Laranja' }      // #ff8000
+    { r: 0, g: 255, b: 136, name: 'Verde' },
+    { r: 255, g: 204, b: 0, name: 'Amarelo' },
+    { r: 255, g: 51, b: 102, name: 'Vermelho' },
+    { r: 0, g: 136, b: 255, name: 'Azul' },
+    { r: 255, g: 102, b: 204, name: 'Rosa' },
+    { r: 170, g: 68, b: 255, name: 'Roxo' },
+    { r: 0, g: 255, b: 255, name: 'Ciano' },
+    { r: 255, g: 128, b: 0, name: 'Laranja' }
 ];
 
 // Cada elemento começa com um índice DIFERENTE para cores diferentes!
@@ -195,7 +196,7 @@ function advanceAllColors() {
 // --- INICIA O LOOP DE CORES ---
 function startAutoColor() {
     if (colorInterval) clearInterval(colorInterval);
-    colorInterval = setInterval(advanceAllColors, 2000); // Troca a cada 2 segundos
+    colorInterval = setInterval(advanceAllColors, 2000);
 }
 
 // --- ESTADO DA APLICAÇÃO ---
@@ -204,7 +205,6 @@ let currentIndex = -1;
 let autoplay = true;
 let currentFolder = null;
 
-// Extensões suportadas
 const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.wmv', '.flv', '.m4v'];
 const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.ico'];
 
@@ -360,6 +360,9 @@ btnToggleAutoplay.addEventListener('click', () => {
 function updateAutoplayButton() {
     if (autoplay) {
         autoplayBtn.title = 'Autoplay: Ligado';
+        autoplayBtn.style.color = '';
+        autoplayBtn.style.textShadow = '';
+        autoplayBtn.style.borderColor = '';
     } else {
         autoplayBtn.style.color = '#8888aa';
         autoplayBtn.style.textShadow = 'none';
@@ -434,6 +437,9 @@ function resetPlayer() {
         
         const style = document.getElementById('dynamic-thumb-style');
         if (style) style.remove();
+        
+        // Reseta a barra de progresso
+        if (progressBar) progressBar.value = 0;
     }
 }
 
@@ -472,23 +478,6 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// --- INICIALIZAÇÃO ---
-loadConfig();
-updateAutoplayButton();
-updatePlayButton();
-
-// Aplica cores iniciais
-applyAllColors();
-
-// INICIA O LOOP DE CORES
-startAutoColor();
-
-console.log('%c✨ NeonOn - Desenvolvido por Misa ✨', 'color: #ff66cc; font-size: 14px;');
-console.log('%c🌈 CADA ELEMENTO tem sua PRÓPRIA COR neon!', 'color: #ffcc00; font-size: 12px;');
-console.log('%c🎨 Neon, On, Play, Volume, Tempo... tudo com cores diferentes mudando juntas!', 'color: #00ff88; font-size: 11px;');
-console.log('%c🔄 Botão RESET adicionado! Clique em ⟲ para limpar e recomeçar.', 'color: #ff3366; font-size: 11px;');
-console.log('%c📊 Barra de Progresso adicionada!', 'color: #0088ff; font-size: 11px;');
-
 // ============================================
 // INTEGRAÇÃO COM PYTHON (PyWebView)
 // ============================================
@@ -498,16 +487,58 @@ const isPython = typeof pywebview !== 'undefined';
 if (isPython) {
     console.log('🐍 Modo Python ativado!');
     
-    // Substitui a função selectFolder original
+    // --- BOTÃO ENVIAR PARA WHATSAPP ---
+    if (btnWhatsApp) {
+        btnWhatsApp.addEventListener('click', async function() {
+            // Verifica se há arquivo carregado
+            if (mediaFiles.length === 0 || currentIndex < 0) {
+                alert('❌ Nenhum arquivo carregado.');
+                return;
+            }
+            
+            const file = mediaFiles[currentIndex];
+            const fileName = file.name;
+            const filePath = file.path;
+            
+            // Confirmação
+            const confirmSend = confirm(
+                `📱 Enviar "${fileName}" para o WhatsApp?\n\n` +
+                `📞 Número: +55 42 99137-8801\n\n` +
+                `✅ O envio é AUTOMÁTICO!\n` +
+                `📲 O arquivo vai direto para o seu celular.`
+            );
+            
+            if (!confirmSend) return;
+            
+            try {
+                btnWhatsApp.disabled = true;
+                btnWhatsApp.textContent = '⏳';
+                btnWhatsApp.title = 'Enviando...';
+                
+                const result = await pywebview.api.send_to_whatsapp(filePath);
+                
+                if (result && result.success) {
+                    alert(`✅ ${result.message}`);
+                } else {
+                    alert(`❌ ${result.error || 'Erro desconhecido'}`);
+                }
+            } catch (e) {
+                console.error('Erro:', e);
+                alert('❌ Erro ao enviar para o WhatsApp.');
+            } finally {
+                btnWhatsApp.disabled = false;
+                btnWhatsApp.textContent = '📱';
+                btnWhatsApp.title = 'Enviar para WhatsApp';
+            }
+        });
+    }
+    
+    // --- SUBSTITUI A FUNÇÃO SELECT FOLDER ---
     window.selectFolder = async function() {
         try {
             const folderPath = await pywebview.api.open_folder_dialog();
-            console.log('Pasta selecionada:', folderPath);
-            
             if (folderPath && !folderPath.error) {
                 const files = await pywebview.api.get_folder_contents(folderPath);
-                console.log('Arquivos encontrados:', files);
-                
                 if (files && !files.error) {
                     mediaFiles = files.map(f => ({
                         name: f.name,
@@ -515,35 +546,27 @@ if (isPython) {
                         type: f.type,
                         size: f.size
                     }));
-                    
                     currentIndex = -1;
                     updateMediaList();
-                    
-                    if (mediaFiles.length > 0) {
-                        playMedia(0);
-                    }
+                    if (mediaFiles.length > 0) playMedia(0);
                     return true;
                 }
             }
             return false;
         } catch (e) {
-            console.error('Erro ao selecionar pasta:', e);
-            alert('Erro ao selecionar pasta. Veja o console para mais detalhes.');
+            console.error('Erro:', e);
             return false;
         }
     };
     
-    // Substitui o evento do botão "Selecionar Pasta"
     btnSelectFolder.onclick = async function() {
         await window.selectFolder();
     };
     
-    // Carregar preferências salvas
+    // --- CARREGAR PREFERÊNCIAS ---
     async function loadPythonPreferences() {
         try {
             const prefs = await pywebview.api.load_preferences();
-            console.log('Preferências carregadas:', prefs);
-            
             if (prefs && !prefs.error) {
                 if (prefs.autoplay !== undefined) {
                     autoplay = prefs.autoplay;
@@ -554,14 +577,12 @@ if (isPython) {
                     videoPlayer.volume = prefs.volume / 100;
                 }
             }
-        } catch (e) {
-            console.error('Erro ao carregar preferências:', e);
-        }
+        } catch (e) {}
     }
     
     loadPythonPreferences();
     
-    // Salvar preferências quando mudar
+    // --- SALVAR PREFERÊNCIAS ---
     volumeSlider.addEventListener('input', function() {
         videoPlayer.volume = this.value / 100;
         pywebview.api.save_preferences({
@@ -570,7 +591,6 @@ if (isPython) {
         });
     });
     
-    // Salvar preferências quando autoplay mudar
     btnToggleAutoplay.addEventListener('click', function() {
         setTimeout(() => {
             pywebview.api.save_preferences({
@@ -581,4 +601,16 @@ if (isPython) {
     });
     
     console.log('✅ Integração Python completa!');
+    console.log('📱 Botão WhatsApp configurado para enviar para o seu celular!');
 }
+
+// --- INICIALIZAÇÃO ---
+loadConfig();
+updateAutoplayButton();
+updatePlayButton();
+applyAllColors();
+startAutoColor();
+
+console.log('%c✨ NeonOn - Desenvolvido por Misa ✨', 'color: #ff66cc; font-size: 14px;');
+console.log('%c🌈 CADA ELEMENTO tem sua PRÓPRIA COR neon!', 'color: #ffcc00; font-size: 12px;');
+console.log('%c📱 Botão WhatsApp: envia o arquivo direto para o seu celular!', 'color: #25D366; font-size: 12px;');
