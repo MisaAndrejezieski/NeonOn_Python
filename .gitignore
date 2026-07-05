@@ -1,0 +1,26 @@
+# Ambiente virtual
+.venv/
+venv/
+env/
+
+# PyInstaller
+dist/
+build/
+*.spec
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Arquivos de configuração local
+config.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Sistema
+Thumbs.db
+.DS_Store
