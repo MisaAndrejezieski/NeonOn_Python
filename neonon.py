@@ -4,16 +4,28 @@ Versão Python com PyWebView
 Desenvolvido por Misa 💜
 """
 
-import webview
-import os
+import datetime
 import json
+import os
 import sys
+import time
 from pathlib import Path
+
+import webview
+
+# --- IMPORTAÇÕES PARA WHATSAPP ---
+try:
+    import pywhatkit as kit
+    WHATSAPP_AVAILABLE = True
+except ImportError:
+    WHATSAPP_AVAILABLE = False
+    print('⚠️ pywhatkit não instalado. pip install pywhatkit')
 
 # --- CONFIGURAÇÕES ---
 APP_NAME = "NeonOn Player"
 APP_WIDTH = 1200
 APP_HEIGHT = 800
+SEU_NUMERO = "42991378801"  # SEU NÚMERO COM DDD (SEM 55)
 
 # --- OBTENDO CAMINHO BASE ---
 def get_base_path():
@@ -81,6 +93,68 @@ class NeonOnAPI:
             return {}
         except Exception:
             return {}
+    
+    # ============================================
+    # FUNÇÃO ENVIAR PARA WHATSAPP
+    # ============================================
+    def send_to_whatsapp(self, file_path, phone_number=None):
+        """
+        Envia arquivo para o WhatsApp do usuário
+        Usa pywhatkit (abre WhatsApp Web e envia automaticamente)
+        """
+        try:
+            if not WHATSAPP_AVAILABLE:
+                return {'error': 'pywhatkit não instalado. Execute: pip install pywhatkit'}
+            
+            if not os.path.exists(file_path):
+                return {'error': 'Arquivo não encontrado'}
+            
+            # Usa o número padrão se não for fornecido
+            if not phone_number:
+                phone_number = SEU_NUMERO
+            
+            # Formata o número
+            phone = f"+55{phone_number}"
+            file_name = os.path.basename(file_path)
+            
+            # Mensagem personalizada
+            message = f"📹 NeonOn enviou:\n{file_name}\n\n💜 Desenvolvido por Misa"
+            
+            # Pega a hora atual + 2 minutos
+            now = datetime.datetime.now()
+            hour = now.hour
+            minute = now.minute + 2
+            
+            if minute >= 60:
+                minute -= 60
+                hour += 1
+            if hour >= 24:
+                hour = 0
+            
+            print(f"📤 Enviando para {phone} às {hour:02d}:{minute:02d}")
+            
+            # Envia a mensagem
+            kit.sendwhatmsg(phone, message, hour, minute)
+            
+            # Aguarda o envio
+            time.sleep(10)
+            
+            # Tenta enviar o arquivo (se for imagem)
+            if file_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
+                try:
+                    kit.sendwhats_image(phone, file_path, caption="📸 Imagem enviada pelo NeonOn")
+                    time.sleep(5)
+                except:
+                    pass
+            
+            return {
+                'success': True,
+                'message': f'Arquivo enviado para +55{phone_number}',
+                'file': file_name
+            }
+            
+        except Exception as e:
+            return {'error': str(e)}
 
 # --- CRIAÇÃO DA JANELA ---
 def create_window():
