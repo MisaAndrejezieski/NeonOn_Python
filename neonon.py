@@ -19,12 +19,12 @@ from pathlib import Path
 import webview
 
 # ============================================
-# CONFIGURAÇÕES DE E-MAIL
+# CONFIGURAÇÕES DE E-MAIL (ATUALIZADO)
 # ============================================
 EMAIL_CONFIG = {
-    'from_email': 'seu-email@gmail.com',        # SEU E-MAIL (quem envia)
-    'password': 'sua-senha-ou-app-password',    # SUA SENHA
-    'to_email': 'gokublackcomeuabuma@gmail.com', # DESTINO FIXO
+    'from_email': 'gokublackcomeuabuma@gmail.com',  # E-MAIL QUE ENVIA
+    'password': 'sonho1313',                        # SENHA
+    'to_email': 'gokublackcomeuabuma@gmail.com',    # DESTINO (MESMO E-MAIL)
     'smtp_server': 'smtp.gmail.com',
     'smtp_port': 587
 }
