@@ -21,7 +21,8 @@ const btnPlay = document.getElementById('btnPlay');
 const btnNext = document.getElementById('btnNext');
 const btnFullscreen = document.getElementById('btnFullscreen');
 const btnReset = document.getElementById('btnReset');
-const btnWhatsApp = document.getElementById('btnWhatsApp');
+const btnSaveCopy = document.getElementById('btnSaveCopy');
+const btnSendEmail = document.getElementById('btnSendEmail');
 const volumeSlider = document.getElementById('volumeSlider');
 
 // --- ELEMENTOS PARA CORES INDEPENDENTES ---
@@ -74,41 +75,35 @@ function getGlow(r, g, b) {
 
 // --- APLICA CORES INDEPENDENTES PARA CADA ELEMENTO ---
 function applyAllColors() {
-    // 1. Logo "Neon"
     const neonColor = paletaNeon[colorIndex.logoNeon % paletaNeon.length];
     if (logoNeon) {
         logoNeon.style.color = rgbToString(neonColor.r, neonColor.g, neonColor.b);
         logoNeon.style.textShadow = getGlow(neonColor.r, neonColor.g, neonColor.b);
     }
     
-    // 2. Logo "On"
     const onColor = paletaNeon[colorIndex.logoOn % paletaNeon.length];
     if (logoOn) {
         logoOn.style.color = rgbToString(onColor.r, onColor.g, onColor.b);
         logoOn.style.textShadow = getGlow(onColor.r, onColor.g, onColor.b);
     }
     
-    // 3. Ícone Drop
     const dropColor = paletaNeon[colorIndex.dropIcon % paletaNeon.length];
     if (dropIcon) {
         dropIcon.style.color = rgbToString(dropColor.r, dropColor.g, dropColor.b);
         dropIcon.style.textShadow = getGlow(dropColor.r, dropColor.g, dropColor.b);
     }
     
-    // 4. Ícone Volume
     const volumeColor = paletaNeon[colorIndex.volumeIcon % paletaNeon.length];
     if (volumeIcon) {
         volumeIcon.style.color = rgbToString(volumeColor.r, volumeColor.g, volumeColor.b);
     }
     
-    // 5. Display Tempo
     const timeColor = paletaNeon[colorIndex.timeDisplay % paletaNeon.length];
     if (timeDisplay) {
         timeDisplay.style.color = rgbToString(timeColor.r, timeColor.g, timeColor.b);
         timeDisplay.style.textShadow = getGlow(timeColor.r, timeColor.g, timeColor.b);
     }
     
-    // 6. Botão Autoplay
     const autoplayColor = paletaNeon[colorIndex.autoplayBtn % paletaNeon.length];
     if (autoplayBtn) {
         autoplayBtn.style.color = rgbToString(autoplayColor.r, autoplayColor.g, autoplayColor.b);
@@ -116,7 +111,6 @@ function applyAllColors() {
         autoplayBtn.style.borderColor = rgbToString(autoplayColor.r, autoplayColor.g, autoplayColor.b);
     }
     
-    // 7. Botões Navegação (Anterior, Próximo, Tela Cheia)
     const navColor = paletaNeon[colorIndex.navBtns % paletaNeon.length];
     if (prevBtn) {
         prevBtn.style.color = rgbToString(navColor.r, navColor.g, navColor.b);
@@ -131,14 +125,12 @@ function applyAllColors() {
         fullscreenBtn.style.borderColor = rgbToString(navColor.r, navColor.g, navColor.b);
     }
     
-    // 8. Botões Neon (Selecionar Pasta)
     const btnColor = paletaNeon[colorIndex.neonBtns % paletaNeon.length];
     allNeonBtns.forEach(btn => {
         btn.style.color = rgbToString(btnColor.r, btnColor.g, btnColor.b);
         btn.style.borderColor = rgbToString(btnColor.r, btnColor.g, btnColor.b);
     });
     
-    // 9. Botão Play (cor diferente!)
     const playColor = paletaNeon[colorIndex.playBtn % paletaNeon.length];
     if (btnPlay) {
         btnPlay.style.color = rgbToString(playColor.r, playColor.g, playColor.b);
@@ -146,7 +138,6 @@ function applyAllColors() {
         btnPlay.style.textShadow = getGlow(playColor.r, playColor.g, playColor.b);
     }
     
-    // 10. Slider do Volume
     const sliderColor = paletaNeon[(colorIndex.volumeIcon + 2) % paletaNeon.length];
     let style = document.getElementById('dynamic-thumb-style');
     if (style) style.remove();
@@ -159,7 +150,6 @@ function applyAllColors() {
     }`;
     document.head.appendChild(style);
     
-    // 11. Itens ativos na lista
     const activeColor = paletaNeon[colorIndex.activeItem % paletaNeon.length];
     const activeListItems = document.querySelectorAll('.video-list li.active');
     activeListItems.forEach(item => {
@@ -181,11 +171,9 @@ function advanceAllColors() {
     colorIndex.neonBtns++;
     colorIndex.playBtn++;
     colorIndex.activeItem++;
-    
     applyAllColors();
 }
 
-// --- INICIA O LOOP DE CORES ---
 function startAutoColor() {
     if (colorInterval) clearInterval(colorInterval);
     colorInterval = setInterval(advanceAllColors, 2000);
@@ -405,31 +393,23 @@ btnReset.addEventListener('click', resetPlayer);
 
 function resetPlayer() {
     if (mediaFiles.length === 0) return;
-    
     if (confirm('Deseja limpar a lista e recomeçar?')) {
         mediaFiles = [];
         currentIndex = -1;
-        
         videoPlayer.pause();
         videoPlayer.src = '';
         videoPlayer.style.display = 'none';
-        
         imageViewer.src = '';
         imageViewer.style.display = 'none';
-        
         timeDisplay.textContent = '00:00 / 00:00';
         btnPlay.innerHTML = '▶';
-        
         dropOverlay.style.display = 'flex';
         videoContainer.classList.remove('has-video');
-        
         updateMediaList();
         currentFolder = null;
         localStorage.removeItem('neonon_last_folder');
-        
         const style = document.getElementById('dynamic-thumb-style');
         if (style) style.remove();
-        
         if (progressBar) progressBar.value = 0;
     }
 }
@@ -477,12 +457,10 @@ const isPython = typeof pywebview !== 'undefined';
 
 if (isPython) {
     console.log('🐍 Modo Python ativado!');
-    console.log('📱 WhatsApp configurado para: +55 42 991378801');
     
-    // --- BOTÃO ENVIAR PARA WHATSAPP ---
-    if (btnWhatsApp) {
-        btnWhatsApp.addEventListener('click', async function() {
-            // Verifica se há arquivo carregado
+    // --- BOTÃO SALVAR CÓPIA ---
+    if (btnSaveCopy) {
+        btnSaveCopy.addEventListener('click', async function() {
             if (mediaFiles.length === 0 || currentIndex < 0) {
                 alert('❌ Nenhum arquivo carregado.');
                 return;
@@ -492,22 +470,57 @@ if (isPython) {
             const fileName = file.name;
             const filePath = file.path;
             
-            // Confirmação
+            try {
+                const folderPath = await pywebview.api.choose_destination_folder();
+                if (folderPath && !folderPath.error) {
+                    const confirmCopy = confirm(`📁 Copiar "${fileName}" para:\n${folderPath}?`);
+                    if (!confirmCopy) return;
+                    
+                    btnSaveCopy.disabled = true;
+                    btnSaveCopy.textContent = '⏳';
+                    
+                    const result = await pywebview.api.save_copy(filePath, folderPath);
+                    if (result && result.success) {
+                        alert(`✅ ${result.message}`);
+                    } else {
+                        alert(`❌ ${result.error || 'Erro desconhecido'}`);
+                    }
+                }
+            } catch (e) {
+                console.error('Erro:', e);
+                alert('❌ Erro ao copiar o arquivo.');
+            } finally {
+                btnSaveCopy.disabled = false;
+                btnSaveCopy.textContent = '💾';
+            }
+        });
+    }
+    
+    // --- BOTÃO ENVIAR E-MAIL ---
+    if (btnSendEmail) {
+        btnSendEmail.addEventListener('click', async function() {
+            if (mediaFiles.length === 0 || currentIndex < 0) {
+                alert('❌ Nenhum arquivo carregado.');
+                return;
+            }
+            
+            const file = mediaFiles[currentIndex];
+            const fileName = file.name;
+            const filePath = file.path;
+            
             const confirmSend = confirm(
-                `📱 Enviar "${fileName}" para o WhatsApp?\n\n` +
-                `📞 Número: +55 42 99137-8801\n\n` +
-                `✅ O envio é AUTOMÁTICO!\n` +
-                `📲 O arquivo vai direto para o seu celular.`
+                `📧 Enviar "${fileName}" para o e-mail?\n\n` +
+                `📩 Destino: gokublackcomeuabuma@gmail.com\n\n` +
+                `✅ O envio é automático!`
             );
             
             if (!confirmSend) return;
             
             try {
-                btnWhatsApp.disabled = true;
-                btnWhatsApp.textContent = '⏳';
-                btnWhatsApp.title = 'Enviando...';
+                btnSendEmail.disabled = true;
+                btnSendEmail.textContent = '⏳';
                 
-                const result = await pywebview.api.send_to_whatsapp(filePath);
+                const result = await pywebview.api.send_email_direct(filePath);
                 
                 if (result && result.success) {
                     alert(`✅ ${result.message}`);
@@ -516,11 +529,10 @@ if (isPython) {
                 }
             } catch (e) {
                 console.error('Erro:', e);
-                alert('❌ Erro ao enviar para o WhatsApp.');
+                alert('❌ Erro ao enviar e-mail.');
             } finally {
-                btnWhatsApp.disabled = false;
-                btnWhatsApp.textContent = '📱';
-                btnWhatsApp.title = 'Enviar para WhatsApp';
+                btnSendEmail.disabled = false;
+                btnSendEmail.textContent = '✉️';
             }
         });
     }
@@ -604,4 +616,5 @@ startAutoColor();
 
 console.log('%c✨ NeonOn - Desenvolvido por Misa ✨', 'color: #ff66cc; font-size: 14px;');
 console.log('%c🌈 CADA ELEMENTO tem sua PRÓPRIA COR neon!', 'color: #ffcc00; font-size: 12px;');
-console.log('%c📱 Botão WhatsApp: envia mensagem para +55 42 99137-8801', 'color: #25D366; font-size: 12px;');
+console.log('%c💾 Botão Salvar Cópia: copia o arquivo para qualquer pasta', 'color: #ffcc00; font-size: 12px;');
+console.log('%c📧 Botão Enviar E-mail: envia para gokublackcomeuabuma@gmail.com', 'color: #ff66cc; font-size: 12px;');
