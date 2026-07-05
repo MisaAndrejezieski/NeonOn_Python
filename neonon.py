@@ -4,7 +4,6 @@ Versão Python com PyWebView
 Desenvolvido por Misa 💜
 """
 
-import datetime
 import json
 import os
 import sys
@@ -13,21 +12,33 @@ from pathlib import Path
 
 import webview
 
-# --- IMPORTAÇÕES PARA WHATSAPP ---
+# ============================================
+# IMPORTAÇÕES PARA WHATSAPP (SELENIUM)
+# ============================================
 try:
-    import pywhatkit as kit
-    WHATSAPP_AVAILABLE = True
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.support.ui import WebDriverWait
+    from webdriver_manager.chrome import ChromeDriverManager
+    SELENIUM_AVAILABLE = True
 except ImportError:
-    WHATSAPP_AVAILABLE = False
-    print('⚠️ pywhatkit não instalado. pip install pywhatkit')
+    SELENIUM_AVAILABLE = False
+    print('⚠️ Selenium não instalado. Execute: pip install selenium webdriver-manager')
 
-# --- CONFIGURAÇÕES ---
+# ============================================
+# CONFIGURAÇÕES
+# ============================================
 APP_NAME = "NeonOn Player"
 APP_WIDTH = 1200
 APP_HEIGHT = 800
 SEU_NUMERO = "42991378801"  # SEU NÚMERO COM DDD (SEM 55)
 
-# --- OBTENDO CAMINHO BASE ---
+# ============================================
+# OBTENDO CAMINHO BASE
+# ============================================
 def get_base_path():
     if getattr(sys, 'frozen', False):
         return os.path.dirname(sys.executable)
@@ -37,11 +48,16 @@ BASE_PATH = get_base_path()
 WEB_PATH = os.path.join(BASE_PATH, 'web')
 INDEX_PATH = os.path.join(WEB_PATH, 'index.html')
 
-# --- API PYTHON PARA JAVASCRIPT ---
+# ============================================
+# CLASSE API - COMUNICAÇÃO PYTHON ↔ JAVASCRIPT
+# ============================================
 class NeonOnAPI:
     def __init__(self):
         self.current_folder = None
     
+    # ============================================
+    # FUNÇÃO: LISTAR CONTEÚDO DA PASTA
+    # ============================================
     def get_folder_contents(self, folder_path):
         try:
             video_ext = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.wmv', '.flv', '.m4v']
@@ -63,6 +79,9 @@ class NeonOnAPI:
         except Exception as e:
             return {'error': str(e)}
     
+    # ============================================
+    # FUNÇÃO: ABRIR DIÁLOGO PARA SELECIONAR PASTA
+    # ============================================
     def open_folder_dialog(self):
         try:
             result = webview.windows[0].create_file_dialog(
@@ -75,6 +94,9 @@ class NeonOnAPI:
         except Exception as e:
             return {'error': str(e)}
     
+    # ============================================
+    # FUNÇÃO: SALVAR PREFERÊNCIAS
+    # ============================================
     def save_preferences(self, preferences):
         try:
             config_path = os.path.join(BASE_PATH, 'config.json')
@@ -84,6 +106,9 @@ class NeonOnAPI:
         except Exception as e:
             return {'error': str(e)}
     
+    # ============================================
+    # FUNÇÃO: CARREGAR PREFERÊNCIAS
+    # ============================================
     def load_preferences(self):
         try:
             config_path = os.path.join(BASE_PATH, 'config.json')
@@ -95,16 +120,17 @@ class NeonOnAPI:
             return {}
     
     # ============================================
-    # FUNÇÃO ENVIAR PARA WHATSAPP
+    # FUNÇÃO: ENVIAR PARA WHATSAPP (SELENIUM)
     # ============================================
     def send_to_whatsapp(self, file_path, phone_number=None):
         """
-        Envia arquivo para o WhatsApp do usuário
-        Usa pywhatkit (abre WhatsApp Web e envia automaticamente)
+        Envia arquivo para o WhatsApp usando Selenium
+        FUNCIONA PARA VÍDEOS E IMAGENS!
+        100% automático após escanear o QR Code
         """
         try:
-            if not WHATSAPP_AVAILABLE:
-                return {'error': 'pywhatkit não instalado. Execute: pip install pywhatkit'}
+            if not SELENIUM_AVAILABLE:
+                return {'error': 'Selenium não instalado. Execute: pip install selenium webdriver-manager'}
             
             if not os.path.exists(file_path):
                 return {'error': 'Arquivo não encontrado'}
@@ -113,50 +139,96 @@ class NeonOnAPI:
             if not phone_number:
                 phone_number = SEU_NUMERO
             
-            # Formata o número
-            phone = f"+55{phone_number}"
+            print(f"📤 Enviando arquivo para +55{phone_number}...")
+            print(f"📁 Arquivo: {os.path.basename(file_path)}")
+            
+            # ============================================
+            # CONFIGURA O CHROME
+            # ============================================
+            options = Options()
+            options.add_argument('--user-data-dir=./whatsapp_session')  # Mantém login
+            options.add_argument('--disable-dev-shm-usage')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-blink-features=AutomationControlled')
+            options.add_experimental_option('excludeSwitches', ['enable-automation'])
+            options.add_experimental_option('useAutomationExtension', False)
+            
+            # ============================================
+            # INICIA O DRIVER
+            # ============================================
+            driver = webdriver.Chrome(
+                service=Service(ChromeDriverManager().install()),
+                options=options
+            )
+            
+            # ============================================
+            # ABRE O WHATSAPP WEB
+            # ============================================
+            driver.get("https://web.whatsapp.com")
+            
+            # Espera o login (60 segundos para escanear o QR Code)
+            wait = WebDriverWait(driver, 60)
+            wait.until(EC.presence_of_element_located((By.XPATH, '//div[@contenteditable="true"]')))
+            
+            # ============================================
+            # ABRE O CHAT COM O NÚMERO
+            # ============================================
+            phone = f"55{phone_number}"
+            chat_url = f"https://web.whatsapp.com/send?phone={phone}"
+            driver.get(chat_url)
+            time.sleep(3)
+            
+            # ============================================
+            # 1. CLICA NO BOTÃO DE ANEXAR
+            # ============================================
+            attach_btn = wait.until(EC.element_to_be_clickable((By.XPATH, '//div[@title="Anexar"]')))
+            attach_btn.click()
+            time.sleep(1)
+            
+            # ============================================
+            # 2. SELECIONA A OPÇÃO "DOCUMENTO"
+            # ============================================
+            file_input = driver.find_element(By.XPATH, '//input[@accept="*"]')
+            file_input.send_keys(os.path.abspath(file_path))
+            time.sleep(3)  # Espera o upload
+            
+            # ============================================
+            # 3. DIGITA A MENSAGEM
+            # ============================================
+            message_box = driver.find_element(By.XPATH, '//div[@contenteditable="true"][@spellcheck="true"]')
             file_name = os.path.basename(file_path)
-            
-            # Mensagem personalizada
             message = f"📹 NeonOn enviou:\n{file_name}\n\n💜 Desenvolvido por Misa"
+            message_box.send_keys(message)
             
-            # Pega a hora atual + 2 minutos
-            now = datetime.datetime.now()
-            hour = now.hour
-            minute = now.minute + 2
-            
-            if minute >= 60:
-                minute -= 60
-                hour += 1
-            if hour >= 24:
-                hour = 0
-            
-            print(f"📤 Enviando para {phone} às {hour:02d}:{minute:02d}")
-            
-            # Envia a mensagem
-            kit.sendwhatmsg(phone, message, hour, minute)
+            # ============================================
+            # 4. CLICA EM ENVIAR
+            # ============================================
+            send_btn = driver.find_element(By.XPATH, '//span[@data-icon="send"]')
+            send_btn.click()
             
             # Aguarda o envio
-            time.sleep(10)
+            time.sleep(5)
             
-            # Tenta enviar o arquivo (se for imagem)
-            if file_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
-                try:
-                    kit.sendwhats_image(phone, file_path, caption="📸 Imagem enviada pelo NeonOn")
-                    time.sleep(5)
-                except:
-                    pass
+            # ============================================
+            # FECHA O NAVEGADOR
+            # ============================================
+            driver.quit()
+            
+            print("✅ Arquivo enviado com sucesso!")
             
             return {
                 'success': True,
-                'message': f'Arquivo enviado para +55{phone_number}',
+                'message': f'✅ Arquivo enviado para +55{phone_number}',
                 'file': file_name
             }
             
         except Exception as e:
+            print(f"❌ Erro: {str(e)}")
             return {'error': str(e)}
 
-# --- CRIAÇÃO DA JANELA ---
+# ============================================
+# CRIAÇÃO DA JANELA
+# ============================================
 def create_window():
     api = NeonOnAPI()
     window = webview.create_window(
@@ -174,7 +246,9 @@ def create_window():
     )
     return window
 
-# --- INICIALIZAÇÃO ---
+# ============================================
+# INICIALIZAÇÃO
+# ============================================
 def main():
     window = create_window()
     webview.start(

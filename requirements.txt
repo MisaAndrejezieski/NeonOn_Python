@@ -1,4 +1,5 @@
 pywebview
 pyinstaller
 pythonnet
-pywhatkit
+selenium
+webdriver-manager
