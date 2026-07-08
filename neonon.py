@@ -27,6 +27,8 @@ def get_base_path():
     return os.path.dirname(os.path.abspath(__file__))
 
 BASE_PATH = get_base_path()
+WEB_PATH = os.path.join(BASE_PATH, 'web')
+INDEX_PATH = os.path.join(WEB_PATH, 'index.html')
 
 # ============================================
 # CLASSE API
@@ -106,6 +108,7 @@ def create_window():
     api = NeonOnAPI()
     window = webview.create_window(
         APP_NAME,
+        INDEX_PATH,
         width=APP_WIDTH,
         height=APP_HEIGHT,
         resizable=True,
@@ -125,7 +128,8 @@ def main():
     window = create_window()
     webview.start(
         private_mode=False,
-        debug=True
+        debug=True,
+        http_server=True
     )
 
 if __name__ == '__main__':
