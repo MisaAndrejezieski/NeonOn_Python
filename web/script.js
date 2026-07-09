@@ -1,15 +1,6 @@
 // ============================================
-// NEONON - PLAYER DE MÍDIA PROFISSIONAL
-// Cada elemento neon tem sua PRÓPRIA COR!
-// Todas mudam simultaneamente!
-// Desenvolvido por Misa 💜
-// 
-// CORREÇÕES REALIZADAS:
-// - Compatibilidade com PyWebView (selectFolder)
-// - Correção de memory leak (revokeURLs segura)
-// - Tratamento de erros específico
-// - Suporte a objetos Python e FileSystemHandle
-// - Feedback visual melhorado no autoplay
+// NEONON - PLAYER DE MIDIA PROFISSIONAL
+// Desenvolvido por Misa
 // ============================================
 
 // --- ELEMENTOS DOM ---
@@ -31,7 +22,7 @@ const btnReset = document.getElementById('btnReset');
 const volumeSlider = document.getElementById('volumeSlider');
 const progressBar = document.getElementById('progressBar');
 
-// --- ELEMENTOS PARA CORES INDEPENDENTES ---
+// --- ELEMENTOS PARA CORES ---
 const logoNeon = document.querySelector('.logo');
 const logoOn = document.querySelector('.logo .accent');
 const dropIcon = document.querySelector('.drop-icon');
@@ -42,7 +33,7 @@ const prevBtn = document.getElementById('btnPrev');
 const nextBtn = document.getElementById('btnNext');
 const fullscreenBtn = document.getElementById('btnFullscreen');
 
-// --- PALETA DE CORES NEON (RGB) ---
+// --- PALETA DE CORES NEON ---
 const paletaNeon = [
     { r: 0, g: 255, b: 136, name: 'Verde' },
     { r: 255, g: 204, b: 0, name: 'Amarelo' },
@@ -54,7 +45,6 @@ const paletaNeon = [
     { r: 255, g: 128, b: 0, name: 'Laranja' }
 ];
 
-// Cada elemento começa com um índice DIFERENTE para cores diferentes!
 let colorIndex = {
     logoNeon: 0,
     logoOn: 1,
@@ -70,7 +60,7 @@ let colorIndex = {
 
 let colorInterval = null;
 
-// --- FUNÇÕES DE COR ---
+// --- FUNCOES DE COR ---
 function rgbToString(r, g, b) {
     return `rgb(${r}, ${g}, ${b})`;
 }
@@ -79,43 +69,36 @@ function getGlow(r, g, b) {
     return `0 0 10px rgba(${r}, ${g}, ${b}, 0.5)`;
 }
 
-// --- APLICA CORES INDEPENDENTES PARA CADA ELEMENTO ---
 function applyAllColors() {
-    // 1. Logo "Neon"
     const neonColor = paletaNeon[colorIndex.logoNeon % paletaNeon.length];
     if (logoNeon) {
         logoNeon.style.color = rgbToString(neonColor.r, neonColor.g, neonColor.b);
         logoNeon.style.textShadow = getGlow(neonColor.r, neonColor.g, neonColor.b);
     }
     
-    // 2. Logo "On"
     const onColor = paletaNeon[colorIndex.logoOn % paletaNeon.length];
     if (logoOn) {
         logoOn.style.color = rgbToString(onColor.r, onColor.g, onColor.b);
         logoOn.style.textShadow = getGlow(onColor.r, onColor.g, onColor.b);
     }
     
-    // 3. Ícone Drop
     const dropColor = paletaNeon[colorIndex.dropIcon % paletaNeon.length];
     if (dropIcon) {
         dropIcon.style.color = rgbToString(dropColor.r, dropColor.g, dropColor.b);
         dropIcon.style.textShadow = getGlow(dropColor.r, dropColor.g, dropColor.b);
     }
     
-    // 4. Ícone Volume
     const volumeColor = paletaNeon[colorIndex.volumeIcon % paletaNeon.length];
     if (volumeIcon) {
         volumeIcon.style.color = rgbToString(volumeColor.r, volumeColor.g, volumeColor.b);
     }
     
-    // 5. Display Tempo
     const timeColor = paletaNeon[colorIndex.timeDisplay % paletaNeon.length];
     if (timeDisplay) {
         timeDisplay.style.color = rgbToString(timeColor.r, timeColor.g, timeColor.b);
         timeDisplay.style.textShadow = getGlow(timeColor.r, timeColor.g, timeColor.b);
     }
     
-    // 6. Botão Autoplay
     const autoplayColor = paletaNeon[colorIndex.autoplayBtn % paletaNeon.length];
     if (autoplayBtn) {
         autoplayBtn.style.color = rgbToString(autoplayColor.r, autoplayColor.g, autoplayColor.b);
@@ -123,7 +106,6 @@ function applyAllColors() {
         autoplayBtn.style.borderColor = rgbToString(autoplayColor.r, autoplayColor.g, autoplayColor.b);
     }
     
-    // 7. Botões Navegação
     const navColor = paletaNeon[colorIndex.navBtns % paletaNeon.length];
     if (prevBtn) {
         prevBtn.style.color = rgbToString(navColor.r, navColor.g, navColor.b);
@@ -138,14 +120,12 @@ function applyAllColors() {
         fullscreenBtn.style.borderColor = rgbToString(navColor.r, navColor.g, navColor.b);
     }
     
-    // 8. Botões Neon
     const btnColor = paletaNeon[colorIndex.neonBtns % paletaNeon.length];
     allNeonBtns.forEach(btn => {
         btn.style.color = rgbToString(btnColor.r, btnColor.g, btnColor.b);
         btn.style.borderColor = rgbToString(btnColor.r, btnColor.g, btnColor.b);
     });
     
-    // 9. Botão Play
     const playColor = paletaNeon[colorIndex.playBtn % paletaNeon.length];
     if (btnPlay) {
         btnPlay.style.color = rgbToString(playColor.r, playColor.g, playColor.b);
@@ -153,7 +133,6 @@ function applyAllColors() {
         btnPlay.style.textShadow = getGlow(playColor.r, playColor.g, playColor.b);
     }
     
-    // 10. Slider do Volume
     const sliderColor = paletaNeon[(colorIndex.volumeIcon + 2) % paletaNeon.length];
     let style = document.getElementById('dynamic-thumb-style');
     if (style) style.remove();
@@ -166,7 +145,6 @@ function applyAllColors() {
     }`;
     document.head.appendChild(style);
     
-    // 11. Itens ativos
     const activeColor = paletaNeon[colorIndex.activeItem % paletaNeon.length];
     const activeListItems = document.querySelectorAll('.video-list li.active');
     activeListItems.forEach(item => {
@@ -176,7 +154,6 @@ function applyAllColors() {
     });
 }
 
-// --- AVANÇA TODAS AS CORES ---
 function advanceAllColors() {
     colorIndex.logoNeon++;
     colorIndex.logoOn++;
@@ -217,9 +194,7 @@ function loadConfig() {
             volumeSlider.value = config.volume ?? 100;
             videoPlayer.volume = volumeSlider.value / 100;
         }
-    } catch (e) {
-        console.warn('Erro ao carregar configurações:', e);
-    }
+    } catch (e) {}
 }
 
 function saveConfig() {
@@ -227,65 +202,43 @@ function saveConfig() {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
 }
 
-// --- FUNÇÕES DE SEGURANÇA PARA REVOKE DE URLs ---
-/**
- * Revoga uma URL de objeto com segurança
- * Apenas revoga URLs que começam com 'blob:'
- */
+// --- FUNCAO SEGURA PARA REVOKE ---
 function safeRevoke(url) {
     if (url && typeof url === 'string' && url.startsWith('blob:')) {
-        try {
-            URL.revokeObjectURL(url);
-            return true;
-        } catch (e) {
-            console.warn('Erro ao revogar URL:', e);
-            return false;
-        }
+        try { URL.revokeObjectURL(url); } catch (e) {}
     }
-    return false;
 }
 
-// --- SELEÇÃO DE PASTA ---
-/**
- * Detecta se está rodando no PyWebView ou no navegador
- * e usa a API apropriada para selecionar pasta
- */
+// --- SELECAO DE PASTA (CORRIGIDA) ---
 async function selectFolder() {
-    // Verifica se está no PyWebView
+    // Verifica se esta no PyWebView
     if (typeof pywebview !== 'undefined') {
         return await selectFolderPython();
     }
-    // Modo navegador
     return await selectFolderBrowser();
 }
 
-/**
- * Modo Python - usa a API do PyWebView
- */
 async function selectFolderPython() {
     try {
+        // A funcao NAO aceita argumentos
         const folderPath = await pywebview.api.open_folder_dialog();
         
-        // Usuário cancelou
         if (!folderPath) {
             return false;
         }
         
-        // Se retornou erro (ex: permissão negada)
         if (folderPath.error) {
             alert(`Erro: ${folderPath.error}`);
             return false;
         }
         
-        // Obtém o conteúdo da pasta
         const result = await pywebview.api.get_folder_contents(folderPath);
         
         if (!result.success) {
-            alert(`Erro ao listar arquivos: ${result.error || 'Erro desconhecido'}`);
+            alert(`Erro: ${result.error || 'Erro desconhecido'}`);
             return false;
         }
         
-        // Converte o resultado para o formato esperado
         mediaFiles = result.files.map(f => ({
             name: f.name,
             path: f.path,
@@ -299,22 +252,18 @@ async function selectFolderPython() {
         if (mediaFiles.length > 0) {
             playMedia(0);
         } else {
-            alert('Nenhum arquivo de vídeo ou imagem encontrado nesta pasta.');
+            alert('Nenhum arquivo de video ou imagem encontrado nesta pasta.');
         }
         
         return true;
         
     } catch (e) {
-        console.error('Erro no selectFolderPython:', e);
+        console.error('Erro:', e);
         alert(`Erro ao acessar a pasta: ${e.message || 'Erro desconhecido'}`);
         return false;
     }
 }
 
-/**
- * Modo Navegador - usa File System Access API
- * Funciona apenas no Chrome/Edge com HTTPS
- */
 async function selectFolderBrowser() {
     try {
         const dirHandle = await window.showDirectoryPicker();
@@ -323,14 +272,12 @@ async function selectFolderBrowser() {
         return true;
     } catch (err) {
         if (err.name !== 'AbortError') {
-            console.error('Erro ao selecionar pasta:', err);
             alert('Erro ao acessar a pasta. Use Chrome ou Edge com HTTPS.');
         }
         return false;
     }
 }
 
-// --- CARREGAMENTO DE MÍDIA (MODO NAVEGADOR) ---
 async function loadMediaFromFolder(dirHandle) {
     mediaFiles = [];
     for await (const entry of dirHandle.values()) {
@@ -346,7 +293,6 @@ async function loadMediaFromFolder(dirHandle) {
     if (mediaFiles.length > 0) playMedia(0);
 }
 
-// --- ATUALIZA A LISTA DE ARQUIVOS ---
 function updateMediaList() {
     videoList.innerHTML = '';
     if (mediaFiles.length === 0) {
@@ -367,7 +313,6 @@ function updateMediaList() {
     videoCounter.textContent = `${mediaFiles.length} arquivo${mediaFiles.length !== 1 ? 's' : ''}`;
 }
 
-// --- REPRODUZ MÍDIA ---
 async function playMedia(index) {
     if (index < 0 || index >= mediaFiles.length) return;
     currentIndex = index;
@@ -379,21 +324,16 @@ async function playMedia(index) {
         const ext = '.' + file.name.split('.').pop().toLowerCase();
         isImage = imageExtensions.includes(ext);
         
-        // Detecta o tipo de objeto e gera URL apropriada
         if (typeof file.getFile === 'function') {
-            // Modo navegador - FileSystemFileHandle
             const fileData = await file.getFile();
             url = URL.createObjectURL(fileData);
         } else if (file.path) {
-            // Modo Python - objeto com caminho
-            // Converte para formato URL file://
             const normalizedPath = file.path.replace(/\\/g, '/');
             url = `file:///${normalizedPath}`;
         } else {
-            throw new Error('Formato de arquivo não suportado');
+            throw new Error('Formato de arquivo nao suportado');
         }
         
-        // Revoga URLs antigas de forma segura
         safeRevoke(videoPlayer.src);
         safeRevoke(imageViewer.src);
         
@@ -420,8 +360,8 @@ async function playMedia(index) {
         applyAllColors();
         
     } catch (err) {
-        console.error('Erro ao carregar arquivo:', err);
-        alert(`Erro ao carregar o arquivo: ${err.message || 'Erro desconhecido'}`);
+        console.error('Erro:', err);
+        alert(`Erro ao carregar: ${err.message || 'Erro desconhecido'}`);
     }
 }
 
@@ -466,7 +406,6 @@ btnNext.addEventListener('click', () => {
     playMedia(currentIndex < mediaFiles.length - 1 ? currentIndex + 1 : 0);
 });
 
-// --- AUTOPLAY MELHORADO ---
 btnToggleAutoplay.addEventListener('click', () => {
     autoplay = !autoplay;
     updateAutoplayButton();
@@ -477,18 +416,12 @@ function updateAutoplayButton() {
     if (autoplay) {
         autoplayBtn.innerHTML = '▶';
         autoplayBtn.title = 'Autoplay: Ligado';
-        autoplayBtn.classList.remove('autoplay-off');
-        autoplayBtn.classList.add('autoplay-on');
-        // Restaura a cor neon
         autoplayBtn.style.color = '';
         autoplayBtn.style.textShadow = '';
         autoplayBtn.style.borderColor = '';
     } else {
         autoplayBtn.innerHTML = '⏸';
         autoplayBtn.title = 'Autoplay: Desligado';
-        autoplayBtn.classList.add('autoplay-off');
-        autoplayBtn.classList.remove('autoplay-on');
-        // Indica visualmente que está desligado
         autoplayBtn.style.color = '#8888aa';
         autoplayBtn.style.textShadow = 'none';
         autoplayBtn.style.borderColor = 'transparent';
@@ -496,20 +429,15 @@ function updateAutoplayButton() {
 }
 
 videoPlayer.addEventListener('ended', () => {
-    if (autoplay && mediaFiles.length > 1) {
-        btnNext.click();
-    } else {
-        updatePlayButton();
-    }
+    if (autoplay && mediaFiles.length > 1) btnNext.click();
+    else updatePlayButton();
 });
 
-// --- VOLUME ---
 volumeSlider.addEventListener('input', () => {
     videoPlayer.volume = volumeSlider.value / 100;
     saveConfig();
 });
 
-// --- BARRA DE PROGRESSO ---
 videoPlayer.addEventListener('timeupdate', () => {
     if (videoPlayer.duration && !isNaN(videoPlayer.duration)) {
         const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
@@ -532,7 +460,6 @@ function formatTime(seconds) {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
-// --- TELA CHEIA ---
 btnFullscreen.addEventListener('click', () => {
     if (document.fullscreenElement) {
         document.exitFullscreen();
@@ -541,16 +468,13 @@ btnFullscreen.addEventListener('click', () => {
     }
 });
 
-// --- BOTÃO RESET ---
 btnReset.addEventListener('click', resetPlayer);
 
 function resetPlayer() {
     if (mediaFiles.length === 0) return;
-    if (confirm('Deseja limpar a lista e recomeçar?')) {
-        // Revoga URLs de forma segura
+    if (confirm('Deseja limpar a lista e recomecar?')) {
         safeRevoke(videoPlayer.src);
         safeRevoke(imageViewer.src);
-        
         mediaFiles = [];
         currentIndex = -1;
         videoPlayer.pause();
@@ -564,9 +488,6 @@ function resetPlayer() {
         videoContainer.classList.remove('has-video');
         updateMediaList();
         currentFolder = null;
-        localStorage.removeItem('neonon_last_folder');
-        const style = document.getElementById('dynamic-thumb-style');
-        if (style) style.remove();
         progressBar.value = 0;
     }
 }
@@ -587,10 +508,8 @@ document.addEventListener('dragleave', (e) => {
 document.addEventListener('drop', async (e) => {
     e.preventDefault();
     document.body.classList.remove('dragover');
-    
     const items = e.dataTransfer.items;
     if (!items) return;
-    
     for (const item of items) {
         if (item.kind === 'file') {
             try {
@@ -600,25 +519,20 @@ document.addEventListener('drop', async (e) => {
                     await loadMediaFromFolder(entry);
                     return;
                 }
-            } catch (err) {
-                console.warn('Erro ao processar drag & drop:', err);
-            }
+            } catch (err) {}
         }
     }
-    
     const files = [...e.dataTransfer.files].filter(f => 
         f.type.startsWith('video/') || f.type.startsWith('image/')
     );
     if (files.length > 0) {
-        alert('Arraste uma pasta inteira com vídeos e imagens.');
+        alert('Arraste uma pasta inteira com videos e imagens.');
     }
 });
 
 // --- ATALHOS DE TECLADO ---
 document.addEventListener('keydown', (e) => {
-    // Ignora se estiver em um campo de input
     if (e.target.tagName === 'INPUT') return;
-    
     switch(e.key) {
         case ' ':
             if (imageViewer.style.display !== 'block') {
@@ -626,19 +540,9 @@ document.addEventListener('keydown', (e) => {
                 togglePlay();
             }
             break;
-        case 'ArrowLeft':
-            e.preventDefault();
-            btnPrev.click();
-            break;
-        case 'ArrowRight':
-            e.preventDefault();
-            btnNext.click();
-            break;
-        case 'f':
-        case 'F':
-            e.preventDefault();
-            btnFullscreen.click();
-            break;
+        case 'ArrowLeft': e.preventDefault(); btnPrev.click(); break;
+        case 'ArrowRight': e.preventDefault(); btnNext.click(); break;
+        case 'f': case 'F': e.preventDefault(); btnFullscreen.click(); break;
         case 'ArrowUp':
             e.preventDefault();
             volumeSlider.value = Math.min(100, parseInt(volumeSlider.value) + 5);
@@ -651,38 +555,19 @@ document.addEventListener('keydown', (e) => {
             videoPlayer.volume = volumeSlider.value / 100;
             saveConfig();
             break;
-        case 'm':
-        case 'M':
-            e.preventDefault();
-            // Mute/Unmute
-            if (videoPlayer.volume > 0) {
-                videoPlayer._lastVolume = videoPlayer.volume;
-                videoPlayer.volume = 0;
-                volumeSlider.value = 0;
-            } else {
-                videoPlayer.volume = videoPlayer._lastVolume || 1;
-                volumeSlider.value = videoPlayer.volume * 100;
-            }
-            saveConfig();
-            break;
     }
 });
 
-// ============================================
-// INTEGRAÇÃO COM PYTHON (PyWebView)
-// ============================================
-
+// --- INTEGRACAO COM PYTHON ---
 const isPython = typeof pywebview !== 'undefined';
 
 if (isPython) {
-    console.log('🐍 Modo Python ativado!');
+    console.log('Modo Python ativado!');
     
-    // Substitui o evento do botão
     btnSelectFolder.onclick = async function() {
         await selectFolder();
     };
     
-    // Carregar preferências do Python
     async function loadPythonPreferences() {
         try {
             const prefs = await pywebview.api.load_preferences();
@@ -696,26 +581,20 @@ if (isPython) {
                     videoPlayer.volume = prefs.volume / 100;
                 }
             }
-        } catch (e) {
-            console.warn('Erro ao carregar preferências do Python:', e);
-        }
+        } catch (e) {}
     }
     
     loadPythonPreferences();
     
-    // Salvar preferências no Python
     function savePythonPreferences() {
         try {
             pywebview.api.save_preferences({
                 volume: parseInt(volumeSlider.value),
                 autoplay: autoplay
             });
-        } catch (e) {
-            console.warn('Erro ao salvar preferências no Python:', e);
-        }
+        } catch (e) {}
     }
     
-    // Adiciona eventos para salvar automaticamente
     volumeSlider.addEventListener('input', () => {
         videoPlayer.volume = volumeSlider.value / 100;
         savePythonPreferences();
@@ -729,19 +608,17 @@ if (isPython) {
         }, 100);
     });
     
-    console.log('✅ Integração Python completa!');
+    console.log('Integracao Python completa!');
 } else {
-    console.log('🌐 Modo Navegador ativado');
+    console.log('Modo Navegador ativado');
     btnSelectFolder.onclick = selectFolder;
 }
 
-// --- INICIALIZAÇÃO ---
+// --- INICIALIZACAO ---
 loadConfig();
 updateAutoplayButton();
 updatePlayButton();
 applyAllColors();
 startAutoColor();
 
-console.log('%c✨ NeonOn - Desenvolvido por Misa ✨', 'color: #ff66cc; font-size: 14px;');
-console.log('%c🌈 CADA ELEMENTO tem sua PRÓPRIA COR neon!', 'color: #ffcc00; font-size: 12px;');
-console.log('%c🎯 Player de mídia profissional com cores dinâmicas!', 'color: #00ff88; font-size: 12px;');
+console.log('NeonOn - Desenvolvido por Misa');
