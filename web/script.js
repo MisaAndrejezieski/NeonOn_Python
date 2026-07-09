@@ -3,6 +3,13 @@
 // Cada elemento neon tem sua PRÓPRIA COR!
 // Todas mudam simultaneamente!
 // Desenvolvido por Misa 💜
+// 
+// CORREÇÕES REALIZADAS:
+// - Compatibilidade com PyWebView (selectFolder)
+// - Correção de memory leak (revokeURLs segura)
+// - Tratamento de erros específico
+// - Suporte a objetos Python e FileSystemHandle
+// - Feedback visual melhorado no autoplay
 // ============================================
 
 // --- ELEMENTOS DOM ---
@@ -22,6 +29,7 @@ const btnNext = document.getElementById('btnNext');
 const btnFullscreen = document.getElementById('btnFullscreen');
 const btnReset = document.getElementById('btnReset');
 const volumeSlider = document.getElementById('volumeSlider');
+const progressBar = document.getElementById('progressBar');
 
 // --- ELEMENTOS PARA CORES INDEPENDENTES ---
 const logoNeon = document.querySelector('.logo');
@@ -209,7 +217,9 @@ function loadConfig() {
             volumeSlider.value = config.volume ?? 100;
             videoPlayer.volume = volumeSlider.value / 100;
         }
-    } catch (e) {}
+    } catch (e) {
+        console.warn('Erro ao carregar configurações:', e);
+    }
 }
 
 function saveConfig() {
@@ -217,19 +227,110 @@ function saveConfig() {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
 }
 
-// --- SELECIONAR PASTA ---
-btnSelectFolder.addEventListener('click', selectFolder);
+// --- FUNÇÕES DE SEGURANÇA PARA REVOKE DE URLs ---
+/**
+ * Revoga uma URL de objeto com segurança
+ * Apenas revoga URLs que começam com 'blob:'
+ */
+function safeRevoke(url) {
+    if (url && typeof url === 'string' && url.startsWith('blob:')) {
+        try {
+            URL.revokeObjectURL(url);
+            return true;
+        } catch (e) {
+            console.warn('Erro ao revogar URL:', e);
+            return false;
+        }
+    }
+    return false;
+}
 
+// --- SELEÇÃO DE PASTA ---
+/**
+ * Detecta se está rodando no PyWebView ou no navegador
+ * e usa a API apropriada para selecionar pasta
+ */
 async function selectFolder() {
+    // Verifica se está no PyWebView
+    if (typeof pywebview !== 'undefined') {
+        return await selectFolderPython();
+    }
+    // Modo navegador
+    return await selectFolderBrowser();
+}
+
+/**
+ * Modo Python - usa a API do PyWebView
+ */
+async function selectFolderPython() {
+    try {
+        const folderPath = await pywebview.api.open_folder_dialog();
+        
+        // Usuário cancelou
+        if (!folderPath) {
+            return false;
+        }
+        
+        // Se retornou erro (ex: permissão negada)
+        if (folderPath.error) {
+            alert(`Erro: ${folderPath.error}`);
+            return false;
+        }
+        
+        // Obtém o conteúdo da pasta
+        const result = await pywebview.api.get_folder_contents(folderPath);
+        
+        if (!result.success) {
+            alert(`Erro ao listar arquivos: ${result.error || 'Erro desconhecido'}`);
+            return false;
+        }
+        
+        // Converte o resultado para o formato esperado
+        mediaFiles = result.files.map(f => ({
+            name: f.name,
+            path: f.path,
+            type: f.type,
+            size: f.size
+        }));
+        
+        currentIndex = -1;
+        updateMediaList();
+        
+        if (mediaFiles.length > 0) {
+            playMedia(0);
+        } else {
+            alert('Nenhum arquivo de vídeo ou imagem encontrado nesta pasta.');
+        }
+        
+        return true;
+        
+    } catch (e) {
+        console.error('Erro no selectFolderPython:', e);
+        alert(`Erro ao acessar a pasta: ${e.message || 'Erro desconhecido'}`);
+        return false;
+    }
+}
+
+/**
+ * Modo Navegador - usa File System Access API
+ * Funciona apenas no Chrome/Edge com HTTPS
+ */
+async function selectFolderBrowser() {
     try {
         const dirHandle = await window.showDirectoryPicker();
         currentFolder = dirHandle;
         await loadMediaFromFolder(dirHandle);
+        return true;
     } catch (err) {
-        if (err.name !== 'AbortError') alert('Erro ao acessar a pasta.');
+        if (err.name !== 'AbortError') {
+            console.error('Erro ao selecionar pasta:', err);
+            alert('Erro ao acessar a pasta. Use Chrome ou Edge com HTTPS.');
+        }
+        return false;
     }
 }
 
+// --- CARREGAMENTO DE MÍDIA (MODO NAVEGADOR) ---
 async function loadMediaFromFolder(dirHandle) {
     mediaFiles = [];
     for await (const entry of dirHandle.values()) {
@@ -245,6 +346,7 @@ async function loadMediaFromFolder(dirHandle) {
     if (mediaFiles.length > 0) playMedia(0);
 }
 
+// --- ATUALIZA A LISTA DE ARQUIVOS ---
 function updateMediaList() {
     videoList.innerHTML = '';
     if (mediaFiles.length === 0) {
@@ -265,17 +367,36 @@ function updateMediaList() {
     videoCounter.textContent = `${mediaFiles.length} arquivo${mediaFiles.length !== 1 ? 's' : ''}`;
 }
 
+// --- REPRODUZ MÍDIA ---
 async function playMedia(index) {
     if (index < 0 || index >= mediaFiles.length) return;
     currentIndex = index;
     const file = mediaFiles[index];
+    
     try {
-        const fileData = await file.getFile();
-        const url = URL.createObjectURL(fileData);
-        if (videoPlayer.src) URL.revokeObjectURL(videoPlayer.src);
-        if (imageViewer.src) URL.revokeObjectURL(imageViewer.src);
+        let url;
+        let isImage = false;
         const ext = '.' + file.name.split('.').pop().toLowerCase();
-        const isImage = imageExtensions.includes(ext);
+        isImage = imageExtensions.includes(ext);
+        
+        // Detecta o tipo de objeto e gera URL apropriada
+        if (typeof file.getFile === 'function') {
+            // Modo navegador - FileSystemFileHandle
+            const fileData = await file.getFile();
+            url = URL.createObjectURL(fileData);
+        } else if (file.path) {
+            // Modo Python - objeto com caminho
+            // Converte para formato URL file://
+            const normalizedPath = file.path.replace(/\\/g, '/');
+            url = `file:///${normalizedPath}`;
+        } else {
+            throw new Error('Formato de arquivo não suportado');
+        }
+        
+        // Revoga URLs antigas de forma segura
+        safeRevoke(videoPlayer.src);
+        safeRevoke(imageViewer.src);
+        
         if (isImage) {
             imageViewer.src = url;
             imageViewer.style.display = 'block';
@@ -291,12 +412,17 @@ async function playMedia(index) {
             videoPlayer.play();
             updatePlayButton();
         }
+        
         videoContainer.classList.add('has-video');
         dropOverlay.style.display = 'none';
         updateMediaList();
         highlightCurrentInList();
         applyAllColors();
-    } catch (err) { alert('Erro ao carregar o arquivo'); }
+        
+    } catch (err) {
+        console.error('Erro ao carregar arquivo:', err);
+        alert(`Erro ao carregar o arquivo: ${err.message || 'Erro desconhecido'}`);
+    }
 }
 
 function highlightCurrentInList() {
@@ -340,6 +466,7 @@ btnNext.addEventListener('click', () => {
     playMedia(currentIndex < mediaFiles.length - 1 ? currentIndex + 1 : 0);
 });
 
+// --- AUTOPLAY MELHORADO ---
 btnToggleAutoplay.addEventListener('click', () => {
     autoplay = !autoplay;
     updateAutoplayButton();
@@ -348,31 +475,41 @@ btnToggleAutoplay.addEventListener('click', () => {
 
 function updateAutoplayButton() {
     if (autoplay) {
+        autoplayBtn.innerHTML = '▶';
         autoplayBtn.title = 'Autoplay: Ligado';
+        autoplayBtn.classList.remove('autoplay-off');
+        autoplayBtn.classList.add('autoplay-on');
+        // Restaura a cor neon
         autoplayBtn.style.color = '';
         autoplayBtn.style.textShadow = '';
         autoplayBtn.style.borderColor = '';
     } else {
+        autoplayBtn.innerHTML = '⏸';
+        autoplayBtn.title = 'Autoplay: Desligado';
+        autoplayBtn.classList.add('autoplay-off');
+        autoplayBtn.classList.remove('autoplay-on');
+        // Indica visualmente que está desligado
         autoplayBtn.style.color = '#8888aa';
         autoplayBtn.style.textShadow = 'none';
         autoplayBtn.style.borderColor = 'transparent';
-        autoplayBtn.title = 'Autoplay: Desligado';
     }
 }
 
 videoPlayer.addEventListener('ended', () => {
-    if (autoplay && mediaFiles.length > 1) btnNext.click();
-    else updatePlayButton();
+    if (autoplay && mediaFiles.length > 1) {
+        btnNext.click();
+    } else {
+        updatePlayButton();
+    }
 });
 
+// --- VOLUME ---
 volumeSlider.addEventListener('input', () => {
     videoPlayer.volume = volumeSlider.value / 100;
     saveConfig();
 });
 
 // --- BARRA DE PROGRESSO ---
-const progressBar = document.getElementById('progressBar');
-
 videoPlayer.addEventListener('timeupdate', () => {
     if (videoPlayer.duration && !isNaN(videoPlayer.duration)) {
         const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
@@ -390,11 +527,18 @@ progressBar.addEventListener('input', () => {
 
 function formatTime(seconds) {
     if (isNaN(seconds) || !isFinite(seconds)) return '00:00';
-    return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
+// --- TELA CHEIA ---
 btnFullscreen.addEventListener('click', () => {
-    document.fullscreenElement ? document.exitFullscreen() : videoContainer.requestFullscreen();
+    if (document.fullscreenElement) {
+        document.exitFullscreen();
+    } else {
+        videoContainer.requestFullscreen();
+    }
 });
 
 // --- BOTÃO RESET ---
@@ -403,6 +547,10 @@ btnReset.addEventListener('click', resetPlayer);
 function resetPlayer() {
     if (mediaFiles.length === 0) return;
     if (confirm('Deseja limpar a lista e recomeçar?')) {
+        // Revoga URLs de forma segura
+        safeRevoke(videoPlayer.src);
+        safeRevoke(imageViewer.src);
+        
         mediaFiles = [];
         currentIndex = -1;
         videoPlayer.pause();
@@ -419,42 +567,104 @@ function resetPlayer() {
         localStorage.removeItem('neonon_last_folder');
         const style = document.getElementById('dynamic-thumb-style');
         if (style) style.remove();
-        if (progressBar) progressBar.value = 0;
+        progressBar.value = 0;
     }
 }
 
 // --- DRAG & DROP ---
-document.addEventListener('dragover', (e) => { e.preventDefault(); document.body.classList.add('dragover'); });
-document.addEventListener('dragleave', (e) => { e.preventDefault(); if (e.relatedTarget === null) document.body.classList.remove('dragover'); });
+document.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    document.body.classList.add('dragover');
+});
+
+document.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    if (e.relatedTarget === null) {
+        document.body.classList.remove('dragover');
+    }
+});
+
 document.addEventListener('drop', async (e) => {
     e.preventDefault();
     document.body.classList.remove('dragover');
+    
     const items = e.dataTransfer.items;
     if (!items) return;
+    
     for (const item of items) {
         if (item.kind === 'file') {
-            const entry = await item.getAsFileSystemHandle();
-            if (entry && entry.kind === 'directory') {
-                currentFolder = entry;
-                await loadMediaFromFolder(entry);
-                return;
+            try {
+                const entry = await item.getAsFileSystemHandle();
+                if (entry && entry.kind === 'directory') {
+                    currentFolder = entry;
+                    await loadMediaFromFolder(entry);
+                    return;
+                }
+            } catch (err) {
+                console.warn('Erro ao processar drag & drop:', err);
             }
         }
     }
-    const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
-    if (files.length > 0) alert('Arraste uma pasta inteira com vídeos e imagens.');
+    
+    const files = [...e.dataTransfer.files].filter(f => 
+        f.type.startsWith('video/') || f.type.startsWith('image/')
+    );
+    if (files.length > 0) {
+        alert('Arraste uma pasta inteira com vídeos e imagens.');
+    }
 });
 
 // --- ATALHOS DE TECLADO ---
 document.addEventListener('keydown', (e) => {
+    // Ignora se estiver em um campo de input
     if (e.target.tagName === 'INPUT') return;
+    
     switch(e.key) {
-        case ' ': if (imageViewer.style.display !== 'block') { e.preventDefault(); togglePlay(); } break;
-        case 'ArrowLeft': e.preventDefault(); btnPrev.click(); break;
-        case 'ArrowRight': e.preventDefault(); btnNext.click(); break;
-        case 'f': case 'F': e.preventDefault(); btnFullscreen.click(); break;
-        case 'ArrowUp': e.preventDefault(); volumeSlider.value = Math.min(100, parseInt(volumeSlider.value) + 5); videoPlayer.volume = volumeSlider.value / 100; saveConfig(); break;
-        case 'ArrowDown': e.preventDefault(); volumeSlider.value = Math.max(0, parseInt(volumeSlider.value) - 5); videoPlayer.volume = volumeSlider.value / 100; saveConfig(); break;
+        case ' ':
+            if (imageViewer.style.display !== 'block') {
+                e.preventDefault();
+                togglePlay();
+            }
+            break;
+        case 'ArrowLeft':
+            e.preventDefault();
+            btnPrev.click();
+            break;
+        case 'ArrowRight':
+            e.preventDefault();
+            btnNext.click();
+            break;
+        case 'f':
+        case 'F':
+            e.preventDefault();
+            btnFullscreen.click();
+            break;
+        case 'ArrowUp':
+            e.preventDefault();
+            volumeSlider.value = Math.min(100, parseInt(volumeSlider.value) + 5);
+            videoPlayer.volume = volumeSlider.value / 100;
+            saveConfig();
+            break;
+        case 'ArrowDown':
+            e.preventDefault();
+            volumeSlider.value = Math.max(0, parseInt(volumeSlider.value) - 5);
+            videoPlayer.volume = volumeSlider.value / 100;
+            saveConfig();
+            break;
+        case 'm':
+        case 'M':
+            e.preventDefault();
+            // Mute/Unmute
+            if (videoPlayer.volume > 0) {
+                videoPlayer._lastVolume = videoPlayer.volume;
+                videoPlayer.volume = 0;
+                volumeSlider.value = 0;
+            } else {
+                videoPlayer.volume = videoPlayer._lastVolume || 1;
+                volumeSlider.value = videoPlayer.volume * 100;
+            }
+            saveConfig();
+            break;
     }
 });
 
@@ -467,37 +677,12 @@ const isPython = typeof pywebview !== 'undefined';
 if (isPython) {
     console.log('🐍 Modo Python ativado!');
     
-    // Substitui a função selectFolder
-    window.selectFolder = async function() {
-        try {
-            const folderPath = await pywebview.api.open_folder_dialog();
-            if (folderPath && !folderPath.error) {
-                const files = await pywebview.api.get_folder_contents(folderPath);
-                if (files && !files.error) {
-                    mediaFiles = files.map(f => ({
-                        name: f.name,
-                        path: f.path,
-                        type: f.type,
-                        size: f.size
-                    }));
-                    currentIndex = -1;
-                    updateMediaList();
-                    if (mediaFiles.length > 0) playMedia(0);
-                    return true;
-                }
-            }
-            return false;
-        } catch (e) {
-            console.error('Erro:', e);
-            return false;
-        }
-    };
-    
+    // Substitui o evento do botão
     btnSelectFolder.onclick = async function() {
-        await window.selectFolder();
+        await selectFolder();
     };
     
-    // Carregar preferências
+    // Carregar preferências do Python
     async function loadPythonPreferences() {
         try {
             const prefs = await pywebview.api.load_preferences();
@@ -511,30 +696,43 @@ if (isPython) {
                     videoPlayer.volume = prefs.volume / 100;
                 }
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn('Erro ao carregar preferências do Python:', e);
+        }
     }
     
     loadPythonPreferences();
     
-    // Salvar preferências
-    volumeSlider.addEventListener('input', function() {
-        videoPlayer.volume = this.value / 100;
-        pywebview.api.save_preferences({
-            volume: parseInt(this.value),
-            autoplay: autoplay
-        });
-    });
-    
-    btnToggleAutoplay.addEventListener('click', function() {
-        setTimeout(() => {
+    // Salvar preferências no Python
+    function savePythonPreferences() {
+        try {
             pywebview.api.save_preferences({
                 volume: parseInt(volumeSlider.value),
                 autoplay: autoplay
             });
+        } catch (e) {
+            console.warn('Erro ao salvar preferências no Python:', e);
+        }
+    }
+    
+    // Adiciona eventos para salvar automaticamente
+    volumeSlider.addEventListener('input', () => {
+        videoPlayer.volume = volumeSlider.value / 100;
+        savePythonPreferences();
+        saveConfig();
+    });
+    
+    btnToggleAutoplay.addEventListener('click', () => {
+        setTimeout(() => {
+            savePythonPreferences();
+            saveConfig();
         }, 100);
     });
     
     console.log('✅ Integração Python completa!');
+} else {
+    console.log('🌐 Modo Navegador ativado');
+    btnSelectFolder.onclick = selectFolder;
 }
 
 // --- INICIALIZAÇÃO ---
