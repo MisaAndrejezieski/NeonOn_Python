@@ -2,6 +2,14 @@
    NEONON - CSS PROFISSIONAL
    Dark Neon | Responsivo | Efeitos Visuais
    Desenvolvido por Misa 💜
+   
+   CORREÇÕES REALIZADAS:
+   - Removida duplicação do ::-webkit-slider-thumb
+   - Adicionado fallback para backdrop-filter
+   - Melhorado contraste de cores
+   - Adicionados estados :focus-visible
+   - Padronizadas variáveis de transição
+   - Melhorada animação do botão reset
    ============================================ */
 
 *, *::before, *::after {
@@ -11,13 +19,25 @@
 }
 
 :root {
+    /* Cores - contraste melhorado */
     --bg-deep: #0a0a14;
     --bg-surface: #12121c;
     --bg-sidebar: #0d0d1a;
-    --text-primary: #e0e0e0;
-    --text-secondary: #8888aa;
+    --text-primary: #e8e8f0;
+    --text-secondary: #b0b0cc; /* Antes: #8888aa (contraste melhorado) */
+    --text-tertiary: #666688;
     --sidebar-width: 300px;
     --controls-height: 56px;
+    
+    /* Transições padronizadas */
+    --transition-fast: 0.2s ease;
+    --transition-smooth: 0.3s ease;
+    --transition-slow: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    
+    /* Z-Index */
+    --z-drop-overlay: 10;
+    --z-controls: 5;
+    --z-sidebar: 3;
 }
 
 body {
@@ -44,6 +64,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    word-break: break-word;
 }
 
 .sidebar-header {
@@ -58,12 +79,12 @@ body {
     font-size: 24px;
     font-weight: 300;
     letter-spacing: 3px;
-    transition: color 0.3s ease, text-shadow 0.3s ease;
+    transition: color var(--transition-smooth), text-shadow var(--transition-smooth);
 }
 
 .logo .accent {
     font-weight: 500;
-    transition: color 0.3s ease, text-shadow 0.3s ease;
+    transition: color var(--transition-smooth), text-shadow var(--transition-smooth);
 }
 
 /* ============================================
@@ -77,12 +98,19 @@ body {
     cursor: pointer;
     padding: 8px 12px;
     border-radius: 8px;
-    transition: all 0.2s ease;
+    transition: all var(--transition-smooth);
 }
 
 .btn-icon:hover {
     transform: translateY(-2px);
     background: rgba(255, 255, 255, 0.05);
+}
+
+/* Estado de foco para acessibilidade por teclado */
+.btn-icon:focus-visible,
+.btn-neon:focus-visible {
+    outline: 2px solid #00ff88;
+    outline-offset: 2px;
 }
 
 .btn-neon {
@@ -92,7 +120,7 @@ body {
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: all var(--transition-smooth);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -117,6 +145,8 @@ body {
     flex: 1;
     overflow-y: auto;
     list-style: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 255, 136, 0.3) transparent;
 }
 
 .video-list::-webkit-scrollbar {
@@ -124,7 +154,7 @@ body {
 }
 
 .video-list::-webkit-scrollbar-track {
-    background: var(--bg-sidebar);
+    background: transparent;
 }
 
 .video-list::-webkit-scrollbar-thumb {
@@ -132,12 +162,16 @@ body {
     border-radius: 4px;
 }
 
+.video-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 136, 0.6);
+}
+
 .video-list li {
     padding: 12px 20px;
     cursor: pointer;
     border-left: 3px solid transparent;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-    transition: all 0.2s;
+    transition: all var(--transition-smooth);
     font-size: 13px;
     white-space: nowrap;
     overflow: hidden;
@@ -151,16 +185,24 @@ body {
     padding-left: 25px;
 }
 
+/* Estado de foco para navegação por teclado */
+.video-list li:focus-visible {
+    outline: 2px solid #00ff88;
+    outline-offset: -2px;
+}
+
 .video-list li.active {
     background: rgba(0, 255, 136, 0.08);
     border-left-color: currentColor;
-    transition: color 0.3s ease, text-shadow 0.3s ease, border-left-color 0.3s ease;
+    transition: color var(--transition-smooth), 
+                text-shadow var(--transition-smooth), 
+                border-left-color var(--transition-smooth);
 }
 
 .video-list .empty-state {
     text-align: center;
     padding: 40px 20px;
-    color: var(--text-secondary);
+    color: var(--text-tertiary);
     border: none;
     cursor: default;
 }
@@ -179,7 +221,7 @@ body {
 .btn-reset {
     font-size: 18px !important;
     padding: 4px 10px !important;
-    transition: transform 0.5s ease;
+    transition: transform var(--transition-slow);
 }
 
 .btn-reset:hover {
@@ -247,16 +289,19 @@ body {
     align-items: center;
     justify-content: center;
     pointer-events: none;
-    z-index: 10;
+    z-index: var(--z-drop-overlay);
 }
 
 .drop-content {
     text-align: center;
     color: var(--text-secondary);
-    background: rgba(0, 0, 0, 0.6);
+    /* Fallback para navegadores sem suporte a backdrop-filter */
+    background: rgba(0, 0, 0, 0.85);
+    /* Efeito vidro fosco - com fallback */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     padding: 30px 50px;
     border-radius: 20px;
-    backdrop-filter: blur(10px);
 }
 
 .drop-icon {
@@ -264,7 +309,7 @@ body {
     display: block;
     margin-bottom: 20px;
     animation: pulse 2s infinite;
-    transition: color 0.3s ease, text-shadow 0.3s ease;
+    transition: color var(--transition-smooth), text-shadow var(--transition-smooth);
 }
 
 @keyframes pulse {
@@ -287,7 +332,7 @@ body {
 }
 
 /* ============================================
-   BARRA DE PROGRESSO
+   BARRA DE PROGRESSO (CORRIGIDA)
    ============================================ */
 .progress-container {
     padding: 4px 20px 0;
@@ -304,30 +349,31 @@ body {
     border-radius: 4px;
     outline: none;
     cursor: pointer;
-    transition: height 0.2s ease;
+    transition: height var(--transition-fast);
 }
 
 .progress-bar:hover {
     height: 6px;
 }
 
-.progress-bar::-webkit-slider-thumb {
+/* UMA ÚNICA REGRA para o thumb - CORRIGIDO (antes estava duplicado) */
+input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    appearance: none;
     width: 12px;
     height: 12px;
     border-radius: 50%;
+    /* Cor padrão - será sobrescrita pelo JavaScript */
     background: #00ff88;
     cursor: pointer;
     box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast);
 }
 
-.progress-bar::-webkit-slider-thumb:hover {
+input[type="range"]::-webkit-slider-thumb:hover {
     transform: scale(1.2);
 }
 
-.progress-bar::-moz-range-thumb {
+input[type="range"]::-moz-range-thumb {
     width: 12px;
     height: 12px;
     border-radius: 50%;
@@ -347,6 +393,7 @@ body {
     padding: 0 20px;
     gap: 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
+    z-index: var(--z-controls);
 }
 
 .btn-play {
@@ -358,7 +405,7 @@ body {
     justify-content: center;
     background: transparent;
     border: 1px solid;
-    transition: all 0.3s ease;
+    transition: all var(--transition-smooth);
 }
 
 .btn-play:hover {
@@ -374,32 +421,7 @@ body {
 
 .volume-icon {
     font-size: 16px;
-    transition: color 0.3s ease;
-}
-
-.progress-bar::-webkit-slider-thumb {
-    appearance: none;           /* ← Primeiro a padrão */
-    -webkit-appearance: none;   /* ← Depois a com prefixo */
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #00ff88;
-    cursor: pointer;
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-    transition: all 0.2s ease;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-input[type="range"]::-webkit-slider-thumb:hover {
-    transform: scale(1.2);
+    transition: color var(--transition-smooth);
 }
 
 .time-display {
@@ -410,7 +432,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     background: rgba(0, 0, 0, 0.4);
     padding: 4px 12px;
     border-radius: 20px;
-    transition: color 0.3s ease, text-shadow 0.3s ease;
+    transition: color var(--transition-smooth), text-shadow var(--transition-smooth);
 }
 
 /* ============================================
@@ -429,7 +451,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     font-size: 11px;
     color: var(--text-secondary);
     letter-spacing: 2px;
-    transition: all 0.3s ease;
+    transition: all var(--transition-smooth);
 }
 
 .credits-text:hover {
@@ -467,5 +489,16 @@ input[type="range"]::-webkit-slider-thumb:hover {
     .btn-reset { font-size: 14px !important; padding: 2px 6px !important; }
     .progress-container { padding: 4px 8px 0; }
     .progress-bar { height: 3px; }
-    .progress-bar::-webkit-slider-thumb { width: 10px; height: 10px; }
+    input[type="range"]::-webkit-slider-thumb { width: 10px; height: 10px; }
+}
+
+/* ============================================
+   TELAS MUITO GRANDES
+   ============================================ */
+@media (min-width: 1440px) {
+    :root {
+        --sidebar-width: 360px;
+    }
+    .logo { font-size: 28px; }
+    .video-list li { font-size: 15px; padding: 14px 24px; }
 }
