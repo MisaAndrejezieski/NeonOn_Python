@@ -1,6 +1,3 @@
-# ============================================
-# NEONON - DEPENDÊNCIAS
-# ============================================
-# Instale com: pip install -r requirements.txt
-
-pywebview==4.2.2
+pywebview
+pyinstaller
+pythonnet
